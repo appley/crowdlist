@@ -18,6 +18,7 @@ export default defineSchema({
     energy,
     trend,
     reportCount: v.number(),
+    baselineCount: v.optional(v.number()),
     updatedAt: v.number(),
     source: v.union(
       v.literal("seeded-demo"),

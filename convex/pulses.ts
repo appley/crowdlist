@@ -15,7 +15,15 @@ export async function rebuildStagePulse(ctx: MutationCtx, stageId: string) {
     .query("pulses")
     .withIndex("by_stage", (q) => q.eq("stageId", stageId))
     .unique();
-  const patch = { ...aggregate, source: "community" as const };
+
+  // Fan reports drive the displayed levels, but the seeded baseline keeps
+  // contributing its count so a fresh report never shrinks the crowd.
+  const baselineCount = pulse?.baselineCount ?? 0;
+  const patch = {
+    ...aggregate,
+    reportCount: baselineCount + aggregate.reportCount,
+    source: (baselineCount > 0 ? "mixed" : "community") as "mixed" | "community",
+  };
   if (pulse) await ctx.db.patch(pulse._id, patch);
   else await ctx.db.insert("pulses", { stageId, ...patch });
 }

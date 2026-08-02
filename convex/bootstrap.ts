@@ -26,6 +26,7 @@ export const ensure = mutation({
       const { freshnessMinutes, ...values } = pulse;
       await ctx.db.insert("pulses", {
         ...values,
+        baselineCount: pulse.reportCount,
         updatedAt: now - freshnessMinutes * 60_000,
         source: "seeded-demo",
       });
