@@ -35,6 +35,92 @@ const MCLAREN_PASS = {
   ],
 };
 
+// Longitude degrees are shorter than latitude degrees at this latitude, so
+// distances are compared in roughly metric space.
+const LON_SCALE = Math.cos((37.77 * Math.PI) / 180);
+const distance = ([ax, ay], [bx, by]) =>
+  Math.hypot((ax - bx) * LON_SCALE, ay - by);
+
+// A stage marker is a dot with a name pill running to its right, so it blocks a
+// box rather than a point. Values are degrees at festival zoom.
+const PILL = { left: 0.00028, right: 0.00092, vertical: 0.00020 };
+
+function clearanceFromPill(point, stage) {
+  const dx = Math.max(stage[0] - PILL.left - point[0], point[0] - (stage[0] + PILL.right), 0);
+  const dy = Math.max(stage[1] - PILL.vertical - point[1], point[1] - (stage[1] + PILL.vertical), 0);
+  return Math.hypot(dx * LON_SCALE, dy);
+}
+
+/**
+ * Where a zone's name should sit: clear of every stage pill, and inside its own
+ * meadow when there is room. Thin meadows let the label sit just past their edge
+ * rather than under a pill, which is what the printed map does with its
+ * narrower zones.
+ */
+function labelAnchor(ring, stagePoints, otherRings = []) {
+  const lons = ring.map((point) => point[0]);
+  const lats = ring.map((point) => point[1]);
+  const margin = 0.00055;
+  const steps = 110;
+  const [west, east] = [Math.min(...lons) - margin, Math.max(...lons) + margin];
+  const [south, north] = [Math.min(...lats) - margin, Math.max(...lats) + margin];
+
+  // Roughly 35 m: enough that a name and a pill read as separate things.
+  const ROOM = 0.00035;
+  let inner = null;
+  let outer = null;
+
+  for (let i = 0; i <= steps; i += 1) {
+    for (let j = 0; j <= steps; j += 1) {
+      const point = [
+        west + ((east - west) * i) / steps,
+        south + ((north - south) * j) / steps,
+      ];
+      // Never let a label drift into a neighbouring zone's color.
+      if (otherRings.some((other) => pointInPolygon(point, other))) continue;
+
+      const inside = pointInPolygon(point, ring);
+      const toOwnEdge = Math.min(...ring.map((vertex) => distance(point, vertex)));
+      if (!inside && toOwnEdge > margin) continue;
+
+      const clearance = stagePoints.length
+        ? Math.min(...stagePoints.map((stage) => clearanceFromPill(point, stage)))
+        : Infinity;
+      const score = Math.min(clearance, 0.0016) + toOwnEdge * 0.15;
+      const slot = inside ? "inner" : "outer";
+      const current = slot === "inner" ? inner : outer;
+      if (!current || score > current.score) {
+        if (slot === "inner") inner = { score, point, clearance };
+        else outer = { score, point, clearance };
+      }
+    }
+  }
+
+  // Stay in the meadow whenever it has room; only step outside to dodge a pill.
+  if (inner && (inner.clearance >= ROOM || !outer || outer.clearance < ROOM)) return inner.point;
+  return outer?.point ?? inner?.point ?? ring[0];
+}
+
+/** Longest-axis angle of a ring in screen degrees, for setting the label. */
+function labelAngle(ring) {
+  let longest = 0;
+  let angle = 0;
+  for (let i = 0; i < ring.length; i += 1) {
+    for (let j = i + 1; j < ring.length; j += 1) {
+      const dx = (ring[j][0] - ring[i][0]) * LON_SCALE;
+      const dy = ring[j][1] - ring[i][1];
+      const span = dx * dx + dy * dy;
+      if (span > longest) {
+        longest = span;
+        angle = -Math.atan2(dy, dx) * (180 / Math.PI);
+      }
+    }
+  }
+  if (angle > 90) angle -= 180;
+  if (angle < -90) angle += 180;
+  return Math.round(angle * 10) / 10;
+}
+
 function pointInPolygon([x, y], ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
@@ -48,30 +134,31 @@ function pointInPolygon([x, y], ring) {
 
 const payload = JSON.parse(await readFile(CACHE, "utf8"));
 const round = (value) => Math.round(value * 1e5) / 1e5;
+const stageGeometry = JSON.parse(await readFile(STAGES, "utf8"));
+const stagePoints = stageGeometry.features.map((feature) => feature.geometry.coordinates);
 
-const features = ZONES.map((zone) => {
+const rings = ZONES.map((zone) => {
   const element = payload.elements.find((candidate) => candidate.tags?.name === zone.osm);
   if (!element?.geometry) throw new Error(`OSM is missing ${zone.osm}`);
   return {
-    type: "Feature",
-    properties: { id: zone.id, name: zone.name, fill: zone.fill, ink: zone.ink },
-    geometry: {
-      type: "Polygon",
-      coordinates: [element.geometry.map((point) => [round(point.lon), round(point.lat)])],
-    },
+    ...zone,
+    ring: element.geometry.map((point) => [round(point.lon), round(point.lat)]),
   };
 });
+rings.push({ ...MCLAREN_PASS, ring: MCLAREN_PASS.coordinates, authored: true });
 
-features.push({
-  type: "Feature",
-  properties: {
-    id: MCLAREN_PASS.id,
-    name: MCLAREN_PASS.name,
-    fill: MCLAREN_PASS.fill,
-    ink: MCLAREN_PASS.ink,
-    authored: true,
-  },
-  geometry: { type: "Polygon", coordinates: [MCLAREN_PASS.coordinates] },
+const features = rings.map((zone, index) => {
+  const others = rings.filter((_, other) => other !== index).map((other) => other.ring);
+  const properties = {
+    id: zone.id,
+    name: zone.name,
+    fill: zone.fill,
+    ink: zone.ink,
+    label: labelAnchor(zone.ring, stagePoints, others).map(round),
+    angle: labelAngle(zone.ring),
+  };
+  if (zone.authored) properties.authored = true;
+  return { type: "Feature", properties, geometry: { type: "Polygon", coordinates: [zone.ring] } };
 });
 
 await writeFile(OUTPUT, `${JSON.stringify({ type: "FeatureCollection", features }, null, 2)}\n`);

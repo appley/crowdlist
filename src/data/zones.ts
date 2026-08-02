@@ -6,6 +6,9 @@ export interface ZoneProperties {
   name: string;
   fill: string;
   ink: string;
+  /** Anchor chosen by scripts/build-zones.mjs to clear the stage pills. */
+  label: [number, number];
+  angle: number;
   authored?: boolean;
 }
 
@@ -19,44 +22,13 @@ export interface ZoneLabel {
   angle: number;
 }
 
-/**
- * Longest-axis angle of a ring, in screen degrees, so a zone label can lie
- * along its meadow the way the printed map sets its type.
- */
-function labelAngle(ring: [number, number][]): number {
-  let longest = 0;
-  let angle = 0;
-  for (let i = 0; i < ring.length; i += 1) {
-    for (let j = i + 1; j < ring.length; j += 1) {
-      const dx = (ring[j][0] - ring[i][0]) * Math.cos((ring[i][1] * Math.PI) / 180);
-      const dy = ring[j][1] - ring[i][1];
-      const span = dx * dx + dy * dy;
-      if (span > longest) {
-        longest = span;
-        angle = -Math.atan2(dy, dx) * (180 / Math.PI);
-      }
-    }
-  }
-  if (angle > 90) angle -= 180;
-  if (angle < -90) angle += 180;
-  return angle;
-}
-
-export const ZONE_LABELS: ZoneLabel[] = ZONES_GEOJSON.features.map((feature) => {
-  const ring = feature.geometry.coordinates[0] as [number, number][];
-  const points = ring.slice(0, -1);
-  const center: [number, number] = [
-    points.reduce((total, point) => total + point[0], 0) / points.length,
-    points.reduce((total, point) => total + point[1], 0) / points.length,
-  ];
-  return {
-    id: feature.properties.id,
-    name: feature.properties.name,
-    ink: feature.properties.ink,
-    center,
-    angle: labelAngle(points),
-  };
-});
+export const ZONE_LABELS: ZoneLabel[] = ZONES_GEOJSON.features.map((feature) => ({
+  id: feature.properties.id,
+  name: feature.properties.name,
+  ink: feature.properties.ink,
+  center: feature.properties.label,
+  angle: feature.properties.angle,
+}));
 
 /** Bounding box of the festival zones, used to frame the camera. */
 export const GROUNDS_BOUNDS: [[number, number], [number, number]] = (() => {

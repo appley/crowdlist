@@ -7,7 +7,12 @@
         "id": "lindley-meadow",
         "name": "Lindley Meadow",
         "fill": "#087d91",
-        "ink": "#f4fbfc"
+        "ink": "#f4fbfc",
+        "label": [
+          -122.48947,
+          37.77069
+        ],
+        "angle": -8.4
       },
       "geometry": {
         "type": "Polygon",
@@ -175,7 +180,12 @@
         "id": "marx-meadow",
         "name": "Marx Meadow",
         "fill": "#1d2420",
-        "ink": "#f2f7ee"
+        "ink": "#f2f7ee",
+        "label": [
+          -122.48623,
+          37.77085
+        ],
+        "angle": -20.2
       },
       "geometry": {
         "type": "Polygon",
@@ -267,7 +277,12 @@
         "id": "hellman-hollow",
         "name": "Hellman Hollow",
         "fill": "#f4626e",
-        "ink": "#3b0c14"
+        "ink": "#3b0c14",
+        "label": [
+          -122.48447,
+          37.76936
+        ],
+        "angle": -14.9
       },
       "geometry": {
         "type": "Polygon",
@@ -587,7 +602,12 @@
         "id": "polo-field",
         "name": "Polo Field",
         "fill": "#f7b32b",
-        "ink": "#3d2703"
+        "ink": "#3d2703",
+        "label": [
+          -122.49189,
+          37.76739
+        ],
+        "angle": -22.2
       },
       "geometry": {
         "type": "Polygon",
@@ -880,6 +900,11 @@
         "name": "McLaren Pass",
         "fill": "#2f6b46",
         "ink": "#eefaf1",
+        "label": [
+          -122.48924,
+          37.77012
+        ],
+        "angle": 4,
         "authored": true
       },
       "geometry": {
