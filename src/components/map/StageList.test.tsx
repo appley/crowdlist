@@ -7,7 +7,12 @@ import { StageList } from "./StageList";
 
 describe("StageList", () => {
   it("reports no WebGL in a canvas-less environment", () => {
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(null);
+
     expect(hasWebGl()).toBe(false);
+    getContext.mockRestore();
   });
 
   it("lists every stage with a text-only pulse and selects one", async () => {

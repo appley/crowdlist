@@ -155,8 +155,7 @@ The report composer is optimized for ten seconds or less:
 1. The selected stage is already set.
 2. Choose one crowd chip: `Easy`, `Comfortable`, `Busy`, or `Packed`.
 3. Choose one energy chip: `Chill`, `Building`, or `Electric`.
-4. Optionally enter up to 140 characters, for example:
-   `Sutro is getting packed but the energy is amazing.`
+4. Optionally enter up to 140 characters.
 5. Submit.
 
 Structured chips are sufficient, so reporting still works when OpenAI is
