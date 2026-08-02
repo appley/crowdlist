@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "CrowdList",
+    "slug": "crowdlist",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CrowdList uses your location to estimate which festival stage you are near.",
+        "NSMicrophoneUsageDescription": "CrowdList records a short audio clip when you identify the song playing at a stage."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO"
+      ]
+    }
+  }
+}

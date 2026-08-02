@@ -1,49 +1,76 @@
-gitignore
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # dependencies
-node_modules/
+/node_modules
+/mobile/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
 
 # Expo
-.expo/
-.expo-shared/
-dist/
-web-build/
+/.expo/
+/mobile/.expo/
+/.expo-shared/
+/mobile/.expo-shared/
+/web-build/
+/mobile/web-build/
 expo-env.d.ts
 
-# Native
+# generated native projects and signing material
+/ios/
+/android/
+/mobile/ios/
+/mobile/android/
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
-ios/
-android/
 
-# Metro
-.metro-health-check*
-
-# Debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+# misc
 .DS_Store
+*.pem
 
-# Environment / secrets
-.env
-.env.*
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# environment and service secrets
+.env*
 !.env.example
+!mobile/.env.example
 google-services.json
 GoogleService-Info.plist
 
-# Firebase
+# Firebase local state
 .firebase/
 firebase-debug.log*
 
-# IDE
+# vercel
+.vercel
+
+# editor state
 .idea/
 .vscode/
 
-# Logs
-*.log
+# typescript
+next-env.d.ts
+/dist/
+/.wrangler/
+/.sites-runtime/
+/outputs/
+/work/
