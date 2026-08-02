@@ -1,0 +1,70 @@
+{
+  "source": "Official Outside Lands schedule cross-referenced with JamBase event jambase:15738826",
+  "retrievedAt": "2026-08-02T22:00:00Z",
+  "date": "2026-08-07",
+  "stages": {
+    "lands-end": [
+      ["Faouzia", "12:05", "12:50"],
+      ["Grace Ives", "13:20", "14:05"],
+      ["Durand Bernarr", "14:35", "15:25"],
+      ["Wet Leg", "15:55", "16:45"],
+      ["GloRilla", "17:15", "18:00"],
+      ["Labrinth", "18:30", "19:40"],
+      ["Charli xcx", "20:40", "22:00"]
+    ],
+    "twin-peaks": [
+      ["NEZZA", "12:35", "13:20"],
+      ["Kerala Dust", "14:05", "14:50"],
+      ["ALLEYCVT", "15:35", "16:25"],
+      ["Tinashe", "17:10", "18:00"],
+      ["Clipse", "18:45", "19:35"],
+      ["GRIZTRONICS", "20:25", "21:55"]
+    ],
+    "sutro": [
+      ["Bad Nerves", "12:25", "13:10"],
+      ["Die Spitz", "13:40", "14:25"],
+      ["The Story So Far", "14:55", "15:40"],
+      ["Sierra Ferrell", "16:10", "17:10"],
+      ["Geese", "17:50", "18:50"],
+      ["Turnstile", "19:20", "20:20"],
+      ["Modest Mouse", "20:50", "21:50"]
+    ],
+    "panhandle": [
+      ["Dani Satin and Always Hallways", "12:00", "12:30"],
+      ["Chezile", "13:20", "14:00"],
+      ["Sawyer Hill", "14:50", "15:30"],
+      ["Billie Marten", "16:25", "17:05"],
+      ["Goldie Boutilier", "18:00", "18:40"],
+      ["Dylan Brady", "19:35", "20:20"]
+    ],
+    "soma": [
+      ["Vertigo", "12:00", "12:55"],
+      ["Luke Alessi", "12:55", "14:25"],
+      ["tobiahs", "14:25", "15:55"],
+      ["MPH", "15:55", "17:25"],
+      ["KI/KI", "17:25", "18:55"],
+      ["¥ØU$UK€ ¥UK1MAT$U", "18:55", "20:25"],
+      ["ODD MOB & OMNOM present HYPERBEAM", "20:25", "21:55"]
+    ],
+    "dolores": [
+      ["DJ Erinyes", "12:30", "13:15"],
+      ["DJ Dolomedes", "13:15", "14:00"],
+      ["Pink Stiletto", "14:00", "14:30"],
+      ["DJ Starr Noir", "14:30", "15:20"],
+      ["Hot Goth Freak Show", "15:20", "15:50"],
+      ["Soltera", "15:50", "16:35"],
+      ["DJ Hopeless & Hot Goth Pole Show", "16:35", "17:20"],
+      ["Ms. Boan", "17:20", "18:05"],
+      ["Hot Goth Freak Show", "18:05", "18:35"],
+      ["Light Asylum", "18:45", "19:30"],
+      ["Romy (DJ Set)", "19:30", "20:30"]
+    ],
+    "duboce-triangle": [
+      ["NEZZA", "14:05", "14:35"],
+      ["Chezile", "15:25", "15:55"],
+      ["Luke Alessi", "16:45", "17:15"],
+      ["ALLEYCVT", "18:15", "18:45"],
+      ["tobiahs", "19:55", "20:40"]
+    ]
+  }
+}

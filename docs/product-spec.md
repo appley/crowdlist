@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Product | CrowdList |
-| Version | 2.2 — OpenAI Sites deployment contract |
+| Version | 2.3 — implemented one-shot scope |
 | Date | August 2, 2026 |
 | Event | OutsideLLMS 2026 / Outside Lands 2026 |
 | Delivery | Public OpenAI Site opened from the OutsideLLMS Experiences gallery |
@@ -81,6 +81,7 @@ guidance. When those are needed, direct the visitor back to Outside Lands.
 | Realtime | Convex propagates a submitted report's new stage pulse to every open map |
 | Demo mode | Seeded pulses, schedule snippets, and repeatable state transitions |
 | Attribution | Visible JamBase attribution wherever its data is displayed |
+| Song recognition | Optional secondary 10-second stage sample through ACRCloud; never blocks the map |
 
 ### 3.2 V2 — build only after V1 is demo-stable
 
@@ -88,13 +89,14 @@ guidance. When those are needed, direct the visitor back to Outside Lands.
 - A secondary **Ask CrowdList** conversational sheet.
 - Stage-to-stage walking paths and crowd-aware routing.
 - Taste, must-see, and crowd-tolerance preferences.
-- Song recognition as one signal in a crowd-verified rolling setlist.
+- Crowd-verified rolling setlists built from provisional recognition results.
 - PWA installation and stronger offline behavior.
 - Report reputation, richer moderation, and confidence modeling.
 
-Song recognition is intentionally preserved here. It is not required for V1.
-In V2, recognition output must remain provisional until corroborated by another
-source or independent fan reports; it must never silently become canonical.
+Recognition is an optional, stage-scoped enhancement in the implemented V1. It
+returns one transient candidate only; no setlist is stored or shown. V2 may use
+recognition as one provisional signal in a crowd-verified rolling setlist, but
+it must never silently become canonical.
 
 ### 3.3 Later
 
@@ -753,7 +755,7 @@ the team confirms otherwise.
 
 After the acceptance criteria pass, stop and review V1 with the team. Only then
 select V2 work based on remaining time. The first candidates are recommendation,
-routing, Ask CrowdList, and song recognition/setlists, but none is implied by or
+routing, Ask CrowdList, and crowd-verified setlists, but none is implied by or
 required for this specification.
 
 ## 18. External references

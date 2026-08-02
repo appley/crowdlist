@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "lands-end",
+      "properties": { "id": "lands-end", "name": "Lands End", "zone": "Polo Field", "accent": "#ffc21c" },
+      "geometry": { "type": "Point", "coordinates": [-122.4984, 37.7671] }
+    },
+    {
+      "type": "Feature",
+      "id": "twin-peaks",
+      "properties": { "id": "twin-peaks", "name": "Twin Peaks", "zone": "Hellman Hollow", "accent": "#ff4964" },
+      "geometry": { "type": "Point", "coordinates": [-122.4688, 37.7711] }
+    },
+    {
+      "type": "Feature",
+      "id": "sutro",
+      "properties": { "id": "sutro", "name": "Sutro", "zone": "Lindley Meadow", "accent": "#087d91" },
+      "geometry": { "type": "Point", "coordinates": [-122.4936, 37.7700] }
+    },
+    {
+      "type": "Feature",
+      "id": "panhandle",
+      "properties": { "id": "panhandle", "name": "Panhandle", "zone": "Hellman Hollow", "accent": "#ef3f58" },
+      "geometry": { "type": "Point", "coordinates": [-122.4760, 37.7704] }
+    },
+    {
+      "type": "Feature",
+      "id": "soma",
+      "properties": { "id": "soma", "name": "SOMA", "zone": "Marx Meadow", "accent": "#5cd3c8" },
+      "geometry": { "type": "Point", "coordinates": [-122.4728, 37.7724] }
+    },
+    {
+      "type": "Feature",
+      "id": "dolores",
+      "properties": { "id": "dolores", "name": "Dolores’", "zone": "Polo Field", "accent": "#d46cd6" },
+      "geometry": { "type": "Point", "coordinates": [-122.4877, 37.7680] }
+    },
+    {
+      "type": "Feature",
+      "id": "duboce-triangle",
+      "properties": { "id": "duboce-triangle", "name": "Duboce Triangle", "zone": "McLaren Pass", "accent": "#173d67" },
+      "geometry": { "type": "Point", "coordinates": [-122.4847, 37.7693] }
+    }
+  ]
+}
