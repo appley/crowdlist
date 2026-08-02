@@ -84,5 +84,7 @@ bun run dev
 ```
 
 Use `?fixture=1&demo=1` for the deterministic, credential-independent demo.
+Add `?nomap=1` to force the text-only stage list that browsers without WebGL
+receive automatically.
 Run `bun run check` before publishing. Server secrets belong in the Convex
 deployment; only `VITE_CONVEX_URL` is supplied to the Sites build.

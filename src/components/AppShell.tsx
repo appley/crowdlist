@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEMO_LOCATION, DEMO_NOW, STAGES } from "../data/festival";
 import { getAnonymousId } from "../lib/identity";
+import { hasWebGl } from "../lib/webgl";
 import type { FestivalDataSource, ReportInput } from "../types";
 import { CrowdMap } from "./map/CrowdMap";
+import { StageList } from "./map/StageList";
 import { MapControls } from "./MapControls";
 import { MapHeader } from "./MapHeader";
 import { ReportComposer } from "./reports/ReportComposer";
@@ -33,6 +35,10 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
   const [recenterToken, setRecenterToken] = useState(0);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "info" } | null>(null);
   const anonId = useMemo(() => getAnonymousId(), []);
+  const mapSupported = useMemo(() => {
+    const forceList = new URLSearchParams(window.location.search).get("nomap") === "1";
+    return !forceList && hasWebGl();
+  }, []);
 
   const selectedStage = STAGES.find((stage) => stage.id === selectedStageId) ?? STAGES[0];
   const selectedPulse =
@@ -107,16 +113,26 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
   }
 
   return (
-    <main className="app-shell">
-      <CrowdMap
-        pulses={pulses}
-        selectedStageId={selectedStage.id}
-        onSelectStage={setSelectedStageId}
-        userLocation={userLocation}
-        locationLabel={locationLabel}
-        recenterToken={recenterToken}
-      />
-      <div className="map-vignette" aria-hidden="true" />
+    <main className={mapSupported ? "app-shell" : "app-shell app-shell--list"}>
+      {mapSupported ? (
+        <>
+          <CrowdMap
+            pulses={pulses}
+            selectedStageId={selectedStage.id}
+            onSelectStage={setSelectedStageId}
+            userLocation={userLocation}
+            locationLabel={locationLabel}
+            recenterToken={recenterToken}
+          />
+          <div className="map-vignette" aria-hidden="true" />
+        </>
+      ) : (
+        <StageList
+          pulses={pulses}
+          selectedStageId={selectedStage.id}
+          onSelectStage={setSelectedStageId}
+        />
+      )}
       <MapHeader status={status} />
       <div className="demo-clock" aria-label="Demonstration time">
         <span>FRI</span>
@@ -129,28 +145,34 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
         </strong>
         <span>PT</span>
       </div>
-      <MapControls
-        onLocate={locate}
-        onDemoLocation={useDemoLocation}
-        onRecenter={() => setRecenterToken((value) => value + 1)}
-        showDemoFallback={locationDenied}
-        locating={locating}
-      />
-      <div className="map-key" aria-label="Crowd comfort key">
-        <span><i className="key-dot key-dot--easy" />Easy</span>
-        <span><i className="key-dot key-dot--comfortable" />Comfortable</span>
-        <span><i className="key-dot key-dot--busy" />Busy</span>
-        <span><i className="key-dot key-dot--packed" />Packed</span>
-      </div>
+      {mapSupported ? (
+        <>
+          <MapControls
+            onLocate={locate}
+            onDemoLocation={useDemoLocation}
+            onRecenter={() => setRecenterToken((value) => value + 1)}
+            showDemoFallback={locationDenied}
+            locating={locating}
+          />
+          <div className="map-key" aria-label="Crowd comfort key">
+            <span><i className="key-dot key-dot--easy" />Easy</span>
+            <span><i className="key-dot key-dot--comfortable" />Comfortable</span>
+            <span><i className="key-dot key-dot--busy" />Busy</span>
+            <span><i className="key-dot key-dot--packed" />Packed</span>
+          </div>
+        </>
+      ) : null}
       <StagePulseSheet
         stage={selectedStage}
         pulse={selectedPulse}
         onReport={() => setReportOpen(true)}
         recognizeSong={recognizeSong}
       />
-      <div className="map-attribution">
-        Official 2026 patron map · Approximate placement
-      </div>
+      {mapSupported ? (
+        <div className="map-attribution">
+          Official 2026 patron map · Approximate placement
+        </div>
+      ) : null}
       {reportOpen ? (
         <ReportComposer
           stage={selectedStage}
