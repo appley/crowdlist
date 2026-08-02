@@ -1,0 +1,17 @@
+{
+  "id": "outside-lands-2026-portrait",
+  "name": "Outside Lands 2026 — authored simulation portrait",
+  "bbox": [-122.511, 37.763, -122.474, 37.775],
+  "timezone": "America/Los_Angeles",
+  "h3Resolution": 11,
+  "stages": [
+    { "id": "lands-end", "name": "Lands End", "lat": 37.7687, "lng": -122.4926, "capacityHint": 32000, "source": "authored" },
+    { "id": "twin-peaks", "name": "Twin Peaks", "lat": 37.7696, "lng": -122.4838, "capacityHint": 19000, "source": "authored" },
+    { "id": "sutro", "name": "Sutro", "lat": 37.7711, "lng": -122.4868, "capacityHint": 12000, "source": "authored" },
+    { "id": "panhandle", "name": "Panhandle", "lat": 37.7702, "lng": -122.4817, "capacityHint": 7000, "source": "authored" },
+    { "id": "soma", "name": "SOMA", "lat": 37.7719, "lng": -122.4777, "capacityHint": 8500, "source": "authored" },
+    { "id": "presidio", "name": "Presidio", "lat": 37.7674, "lng": -122.4890, "capacityHint": 6000, "source": "authored" }
+  ],
+  "temporaryBarriers": { "type": "FeatureCollection", "features": [] },
+  "stageGeometryStatus": "authored estimates; official 2026 festival map was not published as of 2026-08-02"
+}

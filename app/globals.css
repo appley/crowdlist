@@ -37,7 +37,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid #7b56ff; outline-
 .sidebar-stages button small { font-size: 10px; color: #92958d; margin-top: 2px; }
 .sidebar-stages button b { font-size: 11px; color: #c6c9c0; }
 .crowd-dot { width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 9px currentColor; }
-.sidebar-footer { margin-top: auto; border-top: 1px solid #2d2f2a; color: #8f928a; padding: 16px 10px 0; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.sidebar-footer { margin-top: auto; border-top: 1px solid #2d2f2a; color: #8f928a; padding: 16px 10px 0; display: grid; grid-template-columns: 17px 1fr; align-items: center; gap: 8px; font-size: 11px; }
+.sidebar-footer a { grid-column: 1 / -1; color: #d7ff4f; text-decoration: none; display: flex; align-items: center; justify-content: space-between; border: 1px solid #3c4430; border-radius: 7px; padding: 8px 9px; font-weight: 800; }
 .main-view { min-width: 0; position: relative; height: 100dvh; overflow: hidden; }
 .topbar { height: 66px; display: flex; align-items: center; gap: 10px; padding: 0 18px; background: rgba(248,247,242,.94); border-bottom: 1px solid var(--line); position: relative; z-index: 5; backdrop-filter: blur(14px); }
 .mobile-brand { display: none; }

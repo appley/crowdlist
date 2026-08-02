@@ -58,6 +58,13 @@ and current. Update existing sections instead of appending a task diary.
 - Sponsor integrations return explicit unavailable errors when their hosted
   credentials are absent; the client falls back only to labeled seeded or
   downloaded state.
+- A self-contained `crowdsim` Vite/TypeScript module renders deterministic
+  festival-day simulations and measured `FestivalDay` files through the same
+  deck.gl renderer at `/crowdsim/`.
+- CrowdSim uses a cached, connected OpenStreetMap path graph, a verified local
+  PMTiles basemap, H3 density buckets with a k-anonymity floor of five, and
+  production-shaped NDJSON replay fixtures. Its simulated-data status remains
+  visible at all times.
 
 ## External Configuration Still Required
 

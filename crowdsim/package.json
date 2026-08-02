@@ -1,0 +1,33 @@
+{
+  "name": "crowdlist-crowdsim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "fetch:osm": "tsx scripts/fetch-osm.ts",
+    "build:graph": "tsx scripts/build-graph.ts",
+    "validate": "tsx scripts/validate-site.ts"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/geo-layers": "^9.2.11",
+    "@deck.gl/layers": "^9.2.11",
+    "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "h3-js": "^4.3.0",
+    "maplibre-gl": "^6.1.0",
+    "pmtiles": "^4.4.1",
+    "simplex-noise": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/d3-interpolate": "^3.0.4",
+    "@types/d3-scale": "^4.0.9",
+    "@types/geojson": "^7946.0.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.0"
+  }
+}

@@ -432,7 +432,7 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <div className="sidebar-footer"><CircleHelp size={17} /> How live data works</div>
+        <div className="sidebar-footer"><CircleHelp size={17} /><span>How live data works</span><a href="/crowdsim/">Open data portrait <ArrowRight size={13} /></a></div>
       </aside>
 
       <section className="main-view">
