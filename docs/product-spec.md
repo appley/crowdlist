@@ -1,1991 +1,709 @@
-# CrowdList Product and Technical Specification
+# CrowdList V1 Product and Build Specification
 
 | Field | Value |
 | --- | --- |
 | Product | CrowdList |
-| Category | Live festival intelligence |
-| Document status | Hackathon build specification |
-| Version | 1.0 |
+| Version | 2.0 — streamlined hackathon scope |
 | Date | August 2, 2026 |
-| Primary event | OutsideLLMS 2026 / Outside Lands |
-| Primary platform | Public mobile website, optionally installable as a PWA |
-| Distribution | Outside Lands app → Experiences → OutsideLLMS gallery → CrowdList |
+| Event | OutsideLLMS 2026 / Outside Lands 2026 |
+| Delivery | Public mobile website opened from the OutsideLLMS Experiences gallery |
+| V1 objective | Ship one complete, reliable live-map loop |
 
-## 0. Decision register
+## 1. Authoritative build directive
 
-These decisions are authoritative for the hackathon build. Later sections
-elaborate them and must not contradict them.
+Build **V1 only**.
 
-| Area | Decision |
+V1 is complete when a visitor can open CrowdList, immediately see the official
+Outside Lands map brought to life, locate themselves, tap a stage, understand
+its current pulse, submit a quick observation, and see that observation change
+the map.
+
+The implementation should favor a finished vertical slice over scaffolding for
+future features. Do not create V2 screens, empty navigation items, placeholder
+recommendations, route controls, chat launchers, setlist tabs, or generalized
+festival abstractions during the first pass.
+
+When external data or venue connectivity is unavailable, use the checked-in
+Outside Lands fixture and deterministic demo state described here. Missing
+credentials must not prevent the core map from running locally.
+
+### V1 in one sentence
+
+> CrowdList turns the official Outside Lands map into a Strava-style live
+> activity map powered by fresh fan observations.
+
+### Product position
+
+CrowdList is a focused live spatial layer, not a replacement festival app and
+not a chatbot with a map attached. The map is the product. OpenAI helps convert
+natural fan language into trustworthy map signals, but conversation remains
+secondary to direct touch interaction.
+
+## 2. Product boundary
+
+The official Outside Lands app remains the system of record for the festival.
+CrowdList should repeat only the minimum context needed to understand a live
+stage signal.
+
+| Official Outside Lands app owns | CrowdList V1 adds |
 | --- | --- |
-| Primary experience | Full-screen, interactive festival map |
-| Product analogy | AllTrails for the temporary city of Outside Lands |
-| Entry point | Direct link from the OutsideLLMS gallery; no marketing interstitial |
-| Delivery | Public HTTPS mobile website; no installation or account required |
-| Map artwork | Official 2026 Outside Lands patron-map PDF |
-| Map engine | MapLibre GL JS with the PDF as a georeferenced image layer |
-| Interactive map data | CrowdList-owned GeoJSON for stages, zones, paths, gates, routes, and heat cells; static directory information stays in the official map artwork |
-| Planned music data | JamBase, imported server-side and cached |
-| Live data | Fresh, time-decaying attendee reports; deterministic simulation for the judged demo |
-| OpenAI role | Personalization, report interpretation, and grounded explanations behind the map |
-| Conversational UI | Secondary `Ask CrowdList` sheet only |
-| Recommendation UI | Optional suggestion pill and route overlay; never the home screen |
-| Crowd representation | Qualitative aggregate activity and comfort, never exact occupancy or raw user dots |
-| Accounts | None for P0; anonymous local session |
-| Audio recognition | Outside P0; human-confirmed song signals only if time remains |
-| Official-app boundary | Extend the Outside Lands app; do not rebuild its lineup, schedule planner, official alerts, static map directory, FAQ, ticketing, or experiences catalog |
-| Submission uncertainty | Confirm whether “OpenAI site product” means a standalone site or a required ChatGPT App surface |
+| Complete lineup and artist pages | Current and next performer on a tapped stage |
+| Schedule, favorites, and personal planning | Live stage activity and crowd-comfort pulse |
+| Static map, directory, food, and amenities | Interactive activity overlay on the familiar map |
+| Official alerts, safety, policies, and logistics | Clearly labeled, time-stamped fan observations |
+| Tickets, wristbands, and transportation | A fast way to contribute what is happening now |
+| Experiences catalog | One map-first experience launched from that catalog |
 
-### P0 build contract
+V1 must not add a full schedule browser, favorites, artist profiles, food or
+amenity directories, ticketing, official alerts, FAQs, or transportation
+guidance. When those are needed, direct the visitor back to Outside Lands.
 
-The judged build is complete when a visitor can open the gallery link, explore
-the live-styled map immediately, inspect a stage, see JamBase-backed schedule
-context, submit a two-tap crowd report, and watch that report visibly change the
-map and an optional recommendation. Everything else is subordinate.
+## 3. Phase plan
 
-## 1. Executive summary
+### 3.1 V1 — build now
 
-CrowdList helps a festival attendee answer one recurring question:
-
-> Given what I like, what is scheduled, what is actually happening, how crowded
-> each area feels, and how far away I am, where should I go next?
-
-CrowdList combines three layers of information:
-
-1. **Planned truth:** JamBase event, artist, venue, and schedule data.
-2. **Live truth:** time-decaying observations contributed by people at the
-   festival.
-3. **Personal truth:** the attendee's tastes, must-see artists, crowd tolerance,
-   current position, and stated intent.
-
-The product is an **AllTrails-style live festival map**. It makes the temporary
-city of Outside Lands legible: current and upcoming performances, walking paths,
-stage activity, crowd comfort, entrances, amenities, and the attendee's own
-position. Stage Pulse, reporting, routing, and recommendations appear as map
-layers or dismissible sheets.
-
-An optional **Next Move** suggestion can identify a destination, departure time,
-route, reason, tradeoff, confidence level, and alternatives. It enhances the map
-but never replaces or visually dominates it.
-
-The project is distributed as an OpenAI-powered website. The winning project is
-expected to appear through the Outside Lands app's `Experiences` entry, which
-links to the OutsideLLMS project gallery and functions as a lightweight festival
-“app store.” CrowdList therefore requires no App Store installation and must
-deliver value immediately inside a mobile browser or in-app webview.
-
-### One-sentence pitch
-
-> CrowdList turns the official Outside Lands map into a living festival guide,
-> combining JamBase schedules, live crowd signals, and OpenAI personalization.
-
-### Tagline
-
-> Know what's happening. Make your next move.
-
-## 2. Product decision
-
-CrowdList is **not** primarily:
-
-- Another festival schedule.
-- A passive crowd heatmap.
-- A generic festival chatbot.
-- A social location-sharing network.
-- An automatic song-recognition app.
-- A safety or crowd-capacity system.
-
-CrowdList is a **live spatial layer** over official and community festival data.
-
-The product succeeds when a user confidently takes an action: go, stay, leave,
-or choose an alternative. Every feature in the hackathon build must either
-improve that decision or establish trust in it.
-
-### 2.1 Core product loop
-
-```mermaid
-flowchart LR
-    A[Official map and JamBase schedule] --> D[Living festival map]
-    B[Fresh crowd observations] --> D
-    C[User location and preferences] --> D
-    D --> E[Explore, inspect, or navigate]
-    E --> F[Contextual one-tap report]
-    F --> B
-    D --> G[Optional Next Move]
-```
-
-### 2.2 Product principles
-
-1. **Map first.** Open on the grounds, keep spatial context visible, and express
-   results through layers, markers, routes, and sheets.
-2. **Grounded over clever.** Generative output must be grounded in application
-   data and must not invent schedules, locations, or crowd conditions.
-3. **Honest uncertainty.** Show source, recency, and confidence. Avoid false
-   precision.
-4. **Useful before network effects.** JamBase-backed schedules and personalized
-   planning must work before any crowd reports exist.
-5. **Contribution without friction.** Most live reports should require one tap.
-6. **Coarse location by design.** Stage-zone presence is sufficient; individual
-   paths and exact public locations are not.
-7. **Demo reliability.** The hackathon demo must work deterministically without
-   depending on venue connectivity or a critical mass of users.
-
-## 3. Goals and non-goals
-
-### 3.1 Hackathon goals
-
-- Deliver an immediately understandable mobile experience.
-- Demonstrate a real JamBase integration, visibly attributed.
-- Demonstrate a meaningful, constrained OpenAI capability.
-- Show a live observation changing the map and an optional recommendation in
-  real time.
-- Provide a useful map and schedule with zero community contributions.
-- Make scheduled, observed, and inferred information visibly distinct.
-- Produce a repeatable 90-second to three-minute demo.
-- Establish a credible path into the official festival app.
-- Open from the OutsideLLMS gallery into a useful map state without login,
-  installation, or mandatory onboarding.
-- Make the use of OpenAI visible, meaningful, and easy to explain.
-
-### 3.2 Product goals after the hackathon
-
-- Become the live intelligence module embedded in festival applications.
-- Build a trusted stage-by-time dataset of live festival conditions.
-- Improve discovery while respecting user must-see commitments.
-- Create crowd-verified stage timelines and setlists.
-- Provide attendees with a useful and shareable post-festival memory.
-- Give organizers privacy-preserving operational insight.
-
-### 3.3 Non-goals for the hackathon
-
-- Native App Store or Play Store distribution.
-- Precise crowd counts or capacity claims.
-- Background location tracking.
-- Individual friend tracking.
-- Full user accounts or social profiles.
-- Production-grade abuse detection.
-- Automated music recognition as a critical dependency.
-- Ticket sales, food ordering, merchandise, or payments.
-- A complete organizer dashboard.
-- Automatic ingestion of every festival.
-- General-purpose conversational search.
-- Emergency routing or safety guarantees.
-- Full lineup browsing or artist-directory pages.
-- A personal schedule builder or favorites system.
-- Reproducing official festival alerts, FAQs, policies, tickets, food listings,
-  amenity directories, or the Experiences catalog.
-- Replacing the Outside Lands app as the authoritative festival guide.
-
-### 3.4 Boundary with the official Outside Lands app
-
-CrowdList is opened from the official app and should return value that the
-official app does not already provide. It may repeat a minimal piece of official
-context—such as the artist currently scheduled at a tapped stage—but must not
-rebuild the complete destination around that context.
-
-| Outside Lands app owns | CrowdList adds |
+| Capability | V1 behavior |
 | --- | --- |
-| Full lineup and artist discovery pages | Live activity attached to stage locations |
-| Schedule grid, favorites, and planning | What is actually happening now |
-| Official static festival map and directory | Animated crowd/activity overlay on that map |
-| Official alerts and operational messages | Clearly labeled community observations |
-| Food, drinks, amenities, policies, and FAQs | Fresh line/crowd signals only when they affect movement |
-| Tickets, wristbands, transportation, and logistics | Crowd-aware stage-to-stage movement |
-| Experiences catalog | One focused live-map experience |
+| Map shell | Full-screen mobile map with the official 2026 patron map as its visual base |
+| Stage layer | Seven tappable stage hotspots with distinct live states |
+| User location | Browser location puck after an explicit tap; deterministic demo location fallback |
+| Schedule context | JamBase-linked `now` and `next` labels only |
+| Stage Pulse | Crowd comfort, energy, trend, freshness, and recent report count |
+| Live reports | Quick structured chips plus optional short natural-language detail |
+| OpenAI | Parse optional report text into a validated, structured live signal |
+| Realtime | A submitted report updates the selected stage and map activity layer |
+| Demo mode | Seeded pulses, schedule snippets, and repeatable state transitions |
+| Attribution | Visible JamBase attribution wherever its data is displayed |
 
-Product boundary rules:
+### 3.2 V2 — build only after V1 is demo-stable
 
-1. Show only `now` and `next` performance context on the map; link or defer to
-   the official app/site for the complete schedule.
-2. Do not build schedule saving, favorites, lineup search, artist biographies,
-   ticketing, static directories, or official-alert replicas.
-3. Use the official patron map as the familiar canvas, then add only interactive
-   live layers and routes.
-4. Treat JamBase as entity/schedule context for live features, not as a reason to
-   build a second festival guide.
-5. Prefer an obvious `Back to Outside Lands` path for information CrowdList does
-   not own.
+- Personalized **Next Move** recommendations.
+- A secondary **Ask CrowdList** conversational sheet.
+- Stage-to-stage walking paths and crowd-aware routing.
+- Taste, must-see, and crowd-tolerance preferences.
+- Song recognition as one signal in a crowd-verified rolling setlist.
+- PWA installation and stronger offline behavior.
+- Report reputation, richer moderation, and confidence modeling.
 
-## 4. Target audience
+Song recognition is intentionally preserved here. It is not required for V1.
+In V2, recognition output must remain provisional until corroborated by another
+source or independent fan reports; it must never silently become canonical.
 
-### 4.1 Primary persona: the adaptive explorer
+### 3.3 Later
 
-An attendee with several favorite artists who also wants to discover new music.
-They make repeated tradeoffs between taste, distance, schedule conflicts, crowd
-comfort, and the desire to stay with friends.
+- Privacy-preserving passive aggregate location signals.
+- Friend groups, shared plans, and personal festival memories.
+- Organizer analytics and operations tooling.
+- Multi-festival ingestion and reusable venue geometry.
 
-Primary needs:
+## 4. V1 experience
 
-- Know where to go now.
-- Understand what will be sacrificed by leaving or staying.
-- Avoid arriving after a set begins.
-- Discover a good nearby alternative.
-- Avoid unexpectedly uncomfortable crowds.
+### 4.1 Entry state
 
-### 4.2 Secondary persona: the superfan correspondent
+The Outside Lands app opens its `Experiences` destination, the user selects
+CrowdList, and the public site loads directly into the map. There is no landing
+page, account wall, preference quiz, or chat greeting.
 
-An attendee with deep knowledge of one or more artists who enjoys confirming
-set starts, songs, and other live details.
+On first render:
 
-Primary needs:
+1. Show the festival map and seeded stage pulses immediately.
+2. Fit the camera to the festival grounds.
+3. Show a compact legend explaining activity color and freshness.
+4. Keep location permission unrequested until the user taps the location button.
+5. Offer a small `Demo live` badge when fixture mode is active.
 
-- Make expertise useful to other fans.
-- Preserve an accurate record of the performance.
-- Receive meaningful recognition for reliable contributions.
+### 4.2 Map interaction
 
-### 4.3 Future persona: festival operations
+- Pan and zoom use familiar mobile map gestures.
+- A stage hotspot shows its name and current activity through color, halo, and
+  restrained motion.
+- Tapping a hotspot opens a bottom sheet without hiding the spatial context.
+- The bottom sheet can be dragged or dismissed.
+- Tapping `Report here` opens the report composer for that stage.
+- A successful report closes the composer, animates the stage once, and updates
+  its pulse.
 
-An organizer who wants a coarse, privacy-preserving view of crowd movement,
-schedule delays, and information gaps.
+### 4.3 Stage Pulse sheet
 
-This persona informs the data model, but no organizer interface is required for
-the hackathon build.
+The sheet contains only:
 
-## 5. Jobs to be done
+1. Stage name.
+2. `Now` and `Next` performer snippets.
+3. Crowd-comfort label.
+4. Energy label and trend.
+5. Freshness, such as `updated 3 min ago from 8 reports`.
+6. Two or three recent short observations.
+7. Primary `Report here` action.
+8. Small JamBase attribution when its data appears.
 
-### JTBD-1: choose the next set
+It does not contain an artist biography, full schedule, recommendation carousel,
+route planner, setlist, or embedded chat.
 
-> When several sets overlap, help me choose the best next destination based on
-> my priorities so I do not spend the festival comparing schedule grids.
+### 4.4 Report flow
 
-### JTBD-2: react to live changes
+The report composer is optimized for ten seconds or less:
 
-> When a stage is delayed, unexpectedly packed, ending early, or difficult to
-> reach, update my plan before I waste the transition window.
+1. The selected stage is already set.
+2. Choose one crowd chip: `Easy`, `Comfortable`, `Busy`, or `Packed`.
+3. Choose one energy chip: `Chill`, `Building`, or `Electric`.
+4. Optionally enter up to 140 characters, for example:
+   `Sutro is getting packed but the energy is amazing.`
+5. Submit.
 
-### JTBD-3: make discovery safe
+Structured chips are sufficient, so reporting still works when OpenAI is
+unavailable. When text is supplied, the server asks OpenAI for a structured
+interpretation, validates it, and uses only supported fields. The original text
+may be shown as a recent observation after basic moderation.
 
-> When I have an open schedule window, recommend an artist that fits my taste
-> and current context without risking a must-see set.
+### 4.5 Location flow
 
-### JTBD-4: understand recommendation tradeoffs
+Location is useful for orientation, not required for crowd inference.
 
-> When CrowdList recommends something, show me the reason and the cost so I can
-> trust or reject it quickly.
+- Production uses the browser Geolocation API after an explicit user action.
+- Demo mode uses a fixed coordinate inside the grounds and labels it `Demo
+  location`.
+- A `LocationProvider` interface isolates the two implementations.
+- Denial or failure leaves the rest of the map fully usable.
+- V1 does not upload, store, publish, aggregate, or infer crowd density from the
+  user's coordinates.
+- No background location, breadcrumb trail, individual attendee dots, or friend
+  tracking is allowed.
 
-### JTBD-5: contribute live truth
+This resolves the demo constraint without pretending real crowd-location data
+exists: build actual browser positioning, build a fixed demo provider, and use
+fan reports plus fixtures for activity.
 
-> When I arrive at a stage, let me report the situation in seconds and show me
-> that the report improved the shared picture.
-
-### JTBD-6: remember the day
-
-> After the festival, show me the artists and songs I experienced without
-> requiring me to document everything manually.
-
-## 6. Information model and truth states
-
-Every user-visible fact must have one of three truth states.
-
-| State | Definition | Example | Presentation |
-| --- | --- | --- | --- |
-| Scheduled | Supplied by JamBase or a festival source | Artist scheduled at 5:30 | “Scheduled” and JamBase attribution |
-| Observed | Explicitly reported or confirmed by attendees | Set began at 5:34 | “Confirmed by 5 people · 2m ago” |
-| Inferred | Calculated from time, location, or aggregate signals | Crowd appears to be growing | “CrowdList estimate” with confidence |
-
-The UI must never silently promote an inferred fact to an observed fact or an
-observed fact to official schedule data.
-
-Every live fact should carry:
-
-- `sourceType`
-- `observedAt`
-- `expiresAt`
-- `confidence`
-- `uniqueReporterCount`, where applicable
-
-## 7. Scope and priority
-
-### 7.1 P0: required for the judged demo
-
-| Capability | Requirement |
-| --- | --- |
-| Festival seed | Outside Lands schedule and artist records cached from JamBase or a JamBase-derived snapshot |
-| Live grounds map | Georeferenced, mobile festival map with interactive stage zones, route graph, current position, and crowd layer |
-| Stage Pulse | Scheduled artist, progress, live condition, freshness, and recent reports |
-| Reporting | One-tap crowd and status observations |
-| Realtime | A new report updates map activity and stage state without reload |
-| Preference tuning | Optional one-tap energy, space, proximity, and discovery controls |
-| Next Move | Compact, optional recommendation with a grounded explanation and route |
-| Ask CrowdList | Secondary OpenAI sheet that translates a constraint-rich request into visible map filters, ranking, and route state |
-| Demo control | Deterministic scenario controls or timed demo sequence |
-| Attribution | Visible JamBase attribution and compliant event links |
-
-### 7.2 P1: build only after P0 is stable
-
-- Voice preference entry.
-- Natural-language or voice report parsing.
-- Alternative recommendations.
-- Installable PWA metadata.
-- Basic offline cache of the festival snapshot.
-- Crowd-aware route weights.
-- Additional live signal types validated with organizers.
-
-### 7.3 P2: post-hackathon
-
-- Dedicated music-recognition provider.
-- Reputation-weighted setlist verification.
-- Anonymous background stage-zone presence.
-- Friend groups and shared constraints.
-- Push notifications and Live Activities.
-- Route accessibility preferences.
-- Organizer dashboard.
-- Artist and superfan activations.
-- Multi-festival ingestion and operations tooling.
-- Current-song submission and confirmation.
-- My Day timeline and post-event recap.
-
-## 8. Information architecture
-
-The P0 application is a map-first website with contextual bottom sheets and one
-hidden demo surface. It should feel closer to AllTrails or a ski-resort map than
-a conventional tabbed festival schedule. The gallery link should land directly
-on the map, not on a marketing page.
-
-```text
-/                       primary attendee experience and share URL
-├── /onboarding          optional preference refinement
-├── /stages/:stageId      deep-linkable stage sheet/page
-├── /my-day               P2
-└── /demo                 hidden, local/demo access only
-```
-
-P0 should not use permanent bottom navigation. The full-screen map remains the
-canvas while draggable sheets expose Next Move, Stage Pulse, reporting, and
-route details. P1 may add compact `Explore`, `Schedule`, and `My Day` controls.
-Reporting is contextual and should open from a stage sheet rather than occupy a
-permanent navigation item.
-
-### 8.1 Primary mobile layout
+### 4.6 Compact mobile layout
 
 ```text
 ┌──────────────────────────────────┐
-│ CrowdList          Now ▾    ◎    │  compact header
+│ CrowdList          Demo live  ●  │
 │                                  │
-│          FULL-SCREEN MAP         │
+│       ◎ Lands End                │
+│                   ◉ Sutro        │
+│    · animated activity field ·   │
+│                         ◌ Twin    │
+│                         Peaks    │
 │                                  │
-│   ◉ Lands End       ))) SOMA     │  animated stage beacons
-│       ░░░ crowd field ░░░        │
-│            ╲                     │
-│             ╲ highlighted route │
-│              ● You               │
+│ [legend]                    [◎]  │
+├──────────────────────────────────┤
+│ Sutro                      ─────  │
+│ Now  Artist A · Next Artist B    │
+│ Busy · Electric ↗                │
+│ Updated 3m ago · 8 reports       │
+│ “Great energy, filling quickly”  │
 │                                  │
-│  [Crowds] [Schedule] [Ask ✦]     │  map controls
-│  ┌────────────────────────────┐  │
-│  │ Suggested: Twin Peaks · 9m │  │  compact, optional pill
-│  └────────────────────────────┘  │
+│          [ Report here ]         │
 └──────────────────────────────────┘
 ```
 
-Opening a stage, report form, route, or Ask CrowdList uses a draggable sheet
-over the lower portion of the map. The map remains visible behind every sheet.
-Only explicit user action may expand a sheet beyond half the viewport.
+## 5. Visual and motion direction
 
-### 8.2 Map interaction states
+The experience should feel rooted in Golden Gate Park: wooded, foggy, colorful,
+and playful. Motion communicates activity without becoming visual noise.
 
-| State | Entered by | Map behavior | Exit |
-| --- | --- | --- | --- |
-| Browse | Initial load or reset | All stages visible; no route emphasized | Tap a stage/control |
-| Inspect | Tap stage beacon | Selected stage emphasized; Stage Pulse sheet opens | Dismiss sheet or select another stage |
-| Navigate | Tap `Take me there` or accept suggestion | Route, ETA, destination beacon, and recenter control appear | Clear route or arrive |
-| Report | Tap `Report` from a stage | Stage remains selected; compact report sheet opens | Submit or dismiss |
-| Ask | Tap `Ask ✦` | Map dims slightly but remains interactive; secondary sheet opens | Apply result or dismiss |
+Use:
 
-Applying Ask or preference changes returns to Browse or Navigate with a brief
-visual diff: changed stage ranking, filter chips, and route pulse. State must be
-recoverable with the browser Back action without leaving the site unexpectedly.
+- Cypress and eucalyptus greens for the shell.
+- International orange for selected or fresh activity.
+- Stage-specific accents that remain readable against the official artwork.
+- A soft concentric pulse for active stages.
+- A brief firefly or vinyl-groove flourish after a report changes a pulse.
+- Subtle decorative fog at map edges only.
 
-## 9. Experience flows
+Motion semantics must stay stable:
 
-### 9.1 First-use map and optional preference tuning
+- Faster pulse means higher reported energy.
+- Wider translucent field means stronger aggregate activity around that stage.
+- Lower opacity means older or less-supported data.
+- Color never claims exact occupancy, danger, or capacity.
+- Reduced-motion mode replaces loops with static rings and color.
 
-Goal: create enough preference data for a more personal recommendation without
-blocking the first useful map view.
+Keep all branded characters and illustrated details inside the approved map
+artwork. CrowdList's own controls and overlays should be original, legible, and
+visually compatible.
 
-Steps:
+## 6. Map implementation
 
-1. Render the map immediately with a useful non-personalized state based on time
-   and the current festival schedule.
-2. Present optional, one-tap map tuning rather than a separate planning flow.
-3. Ask for crowd preference:
-   - “Put me in the energy”
-   - “Balanced”
-   - “Give me room”
-4. Optionally ask for a discovery/energy preference.
-5. Ask for location permission only after the map explains the benefit.
-6. If denied, let the user choose a current stage manually.
-7. Apply the preference to map activity and optional suggestions.
+### 6.1 Data availability
 
-Authentication is not required. Store preferences against a random local
-session identifier.
+Outside Lands publicly provides the patron-map PDF, stage, lineup, schedule, and
+information pages. No documented public developer API, official GeoJSON,
+routing graph, or live crowd feed has been identified. V1 must not depend on
+undocumented app endpoints.
 
-### 9.2 Map-first interaction hierarchy
+Use the approved 2026 map PDF:
 
-The map is the only primary surface. Next Move appears as a compact suggestion
-pill above the map controls, for example `Suggested: SOMA · 5 min`. It must not
-cover meaningful map content or open automatically into a large card. Selecting
-the pill highlights the route and opens a draggable detail sheet with rationale,
-alternatives, and controls; dismissing it returns to the unchanged map.
+`https://sfoutsidelands.com/assets/maps/ol26-patron-map_73026.pdf`
 
-For an unpersonalized gallery visitor, the map remains fully explorable while a
-subtle suggestion pill shows the best time-and-location-aware option available
-from the current schedule. Lightweight chips inside the expanded sheet let the
-user tune it without typing:
+### 6.2 Renderer and layers
 
-- More energy
-- More room
-- Closer
-- Surprise me
-- Must-see only
-
-Selecting a chip immediately re-ranks the visible stage options and redraws the
-route. Favorite lineup artists and prior choices refine later recommendations.
-The primary loop remains visual and direct.
-
-A secondary `Ask CrowdList` action opens an optional conversational sheet for
-constraint-rich requests such as:
-
-> I want electronic music, have 40 minutes, and need to be at Lands End by 6.
-
-OpenAI parses the request into structured preferences and constraints. The
-deterministic engine ranks eligible performances, closes or minimizes the sheet,
-and expresses the result back on the map as a route and Next Move sheet. Chat is
-an input shortcut, never the main destination or the place where results live.
-
-The recommendation card contains:
-
-- Recommended artist and stage.
-- “Leave in N minutes” or “Go now.”
-- Walking time.
-- Set start and end.
-- One-sentence reason.
-- One explicit tradeoff.
-- Confidence indicator.
-- Primary action: `Take me there`.
-- Secondary actions: `Alternatives` and `Tune recommendation`.
-
-Example:
-
-> **Head to Twin Peaks in 6 minutes**
->
-> Barry Can't Swim starts at 5:30. It is a 9-minute walk, matches your
-> electronic favorites, and the crowd is still comfortable.
->
-> **Tradeoff:** You will miss the final 8 minutes at Sutro.
-
-When a recommendation changes because of new live information, show a concise
-reason:
-
-> Updated: Lands End is delayed and newly reported as packed.
-
-### 9.3 Detailed map flow
-
-1. Open directly into a north-oriented, georeferenced, full-screen map
-   constrained to the festival grounds.
-2. Show the attendee's position and heading, or their manually chosen stage.
-3. Render interactive paths, gates, stages, and zones above the official map;
-   leave its static directory labels in the base artwork.
-4. Render qualitative crowd activity above the static grounds layer.
-5. Show a compact Next Move suggestion pill without automatically drawing a
-   route or opening a sheet.
-6. Tap a stage marker to open a compact Stage Pulse sheet.
-7. Select the suggestion pill or `Take me there` to emphasize the route, ETA,
-   and destination beacon.
-
-Primary map controls:
-
-- Recenter / current location.
-- Now / later time selector.
-- Crowd layer toggle.
-- Now / next performer labels toggle.
-- Current route clear/reset.
-
-The user must be able to explore stages, inspect activity, and navigate without
-ever opening recommendation or conversational UI.
-
-Marker content:
-
-- Stage name.
-- Current or next artist.
-- Set progress ring.
-- Crowd label.
-- Live-status icon.
-
-Color must not be the only way crowd state or confidence is conveyed.
-
-The map should support one-handed pan, pinch zoom, recenter, and north-reset.
-Unlike a normal city map, the camera should not pan far beyond the festival
-boundary.
-
-### 9.4 Report flow
-
-When a user arrives at or opens a stage:
-
-1. Ask “How is it here?”
-2. Present one-tap crowd choices:
-   - Light
-   - Comfortable
-   - Busy
-   - Packed
-3. Optionally ask one follow-up:
-   - Great energy
-   - Long line
-   - Set delayed
-   - Artist is playing
-4. Submit optimistically.
-5. Confirm impact: “Added to Twin Peaks · live picture updated.”
-
-P1 natural-language entry:
-
-> “The west entrance is moving fast, but it is packed near the front.”
-
-The server parses it into structured signals and returns a preview for user
-confirmation before publishing.
-
-### 9.5 Stage Pulse flow
-
-The stage page contains:
-
-1. **Now:** current scheduled and observed performance state.
-2. **Pulse:** crowd level, direction of change, energy, and freshness.
-3. **Next:** upcoming performances at this stage.
-4. **Reports:** short recent structured observations.
-5. **Setlist:** P2 current-song confirmations and recent history.
-6. **Action:** navigate here or submit a report.
-
-### 9.6 My Day flow (P2)
-
-My Day is built from explicit `Take me there` actions, stage-zone arrival, and
-manual confirmation. It must not claim that a user saw a full set from a brief
-location observation.
-
-Possible labels:
-
-- “You headed to...”
-- “You checked in at...”
-- “Likely heard...”
-- “You confirmed...”
-
-## 10. Functional requirements
-
-### 10.1 Festival and schedule
-
-- **FR-FEST-001:** The system shall display one configured festival and its
-  date range.
-- **FR-FEST-002:** The system shall import or seed JamBase event and artist
-  identifiers where available.
-- **FR-FEST-003:** The system shall support a curated override for stage,
-  coordinates, and performance times missing from JamBase.
-- **FR-FEST-004:** The system shall preserve source attribution per imported
-  record.
-- **FR-FEST-005:** The client shall remain usable when the JamBase API is
-  temporarily unavailable.
-
-### 10.2 Preferences
-
-- **FR-PREF-001:** The user shall be able to tune crowd comfort, energy,
-  proximity, and discovery through one-tap controls.
-- **FR-PREF-002:** Ask CrowdList may capture temporary genre, artist, time, or
-  destination constraints without creating a parallel schedule planner.
-- **FR-PREF-003:** The user shall be able to specify a crowd-comfort preference.
-- **FR-PREF-004:** The user shall be able to select a current stage manually.
-- **FR-PREF-005:** Preferences shall persist locally without registration.
-- **FR-PREF-006:** The user shall be able to clear all CrowdList preferences and
-  return to the neutral live map in one action.
-
-### 10.3 Recommendation
-
-- **FR-REC-001:** When the user requests or expands Next Move, the system shall
-  return one primary recommendation and at least one alternative when eligible
-  performances exist.
-- **FR-REC-002:** Each recommendation shall identify the performance, stage,
-  departure timing, walking estimate, reason, tradeoff, and confidence.
-- **FR-REC-003:** The recommendation shall not reference data absent from the
-  supplied context.
-- **FR-REC-004:** Must-see conflicts shall be explicitly disclosed.
-- **FR-REC-005:** Expired live observations shall not influence the score.
-- **FR-REC-006:** New material live observations shall trigger recalculation.
-- **FR-REC-007:** A deterministic fallback explanation shall exist if the AI
-  service is unavailable.
-
-### 10.4 Live reporting
-
-- **FR-LIVE-001:** A user shall be able to submit a structured report in no more
-  than two taps after opening the report sheet.
-- **FR-LIVE-002:** Reports shall carry event, stage, session, and timestamp.
-- **FR-LIVE-003:** Reports shall expire according to signal type.
-- **FR-LIVE-004:** Duplicate rapid reports from one session shall be throttled.
-- **FR-LIVE-005:** The aggregate stage state shall update in real time.
-- **FR-LIVE-006:** Single-source observations shall be labeled as early signals.
-- **FR-LIVE-007:** Conflicting reports shall reduce confidence.
-
-### 10.5 Map
-
-- **FR-MAP-001:** The map shall display every configured stage.
-- **FR-MAP-002:** Stage markers shall show current or next performance and crowd
-  state.
-- **FR-MAP-003:** The user shall be able to select a stage manually as their
-  current location.
-- **FR-MAP-004:** The map shall remain functional without precise device
-  location.
-- **FR-MAP-005:** Crowd state shall be communicated with text/iconography in
-  addition to color.
-- **FR-MAP-006:** The map shall display a route from the current/manual position
-  to the recommended stage.
-- **FR-MAP-007:** Routing shall use a curated festival path graph rather than a
-  public street-directions API.
-- **FR-MAP-008:** The map shall visually distinguish public paths, restricted
-  areas, stage zones, entrances, and accessible routes when known.
-- **FR-MAP-009:** Raw attendee point locations shall never be displayed as the
-  public heatmap.
-- **FR-MAP-010:** The camera shall remain bounded to the festival grounds plus a
-  small orientation margin.
-
-### 10.6 Setlist (P2)
-
-- **FR-SET-001:** A user shall be able to propose a current song for the active
-  performance.
-- **FR-SET-002:** Other users shall be able to confirm or dispute the proposal.
-- **FR-SET-003:** A song shall be marked confirmed only after the configured
-  agreement threshold is met.
-- **FR-SET-004:** The UI shall distinguish proposed, likely, and confirmed
-  songs.
-- **FR-SET-005:** Music-recognition output, if added, shall count as one signal
-  rather than final truth.
-
-### 10.7 Distribution and runtime
-
-- **FR-DIST-001:** The public project URL shall open directly to an interactive
-  map state.
-- **FR-DIST-002:** Map exploration shall not require installation, login,
-  location permission, or preference setup.
-- **FR-DIST-003:** The site shall work in a normal mobile browser and common
-  iOS/Android in-app webviews.
-- **FR-DIST-004:** The site shall not depend on popups, a new browser window, or
-  preserved referrer headers.
-- **FR-DIST-005:** The first meaningful frame shall contain the official map and
-  current schedule state before live and AI requests finish.
-- **FR-DIST-006:** Campaign parameters shall be accepted only from an allowlist
-  and shall not control arbitrary redirects or executable content.
-- **FR-DIST-007:** The site shall preserve normal browser Back behavior and offer
-  a clear return path to official Outside Lands content for schedule, lineup,
-  policy, directory, and ticket information.
-
-### 10.8 Ask CrowdList
-
-- **FR-ASK-001:** Ask CrowdList shall be secondary to the map and opened only by
-  explicit user action.
-- **FR-ASK-002:** It shall translate a request into a validated set of preference
-  changes, filters, candidate IDs, or route intent.
-- **FR-ASK-003:** Its result shall be expressed on the map; the conversation
-  transcript shall not become the main results view.
-- **FR-ASK-004:** It shall reference only configured artists, performances,
-  stages, routes, and live facts provided in context.
-- **FR-ASK-005:** The user shall be able to undo the resulting map/filter changes
-  in one action.
-- **FR-ASK-006:** Failure or timeout shall leave the map usable and preserve its
-  previous state.
-
-## 11. Recommendation system
-
-### 11.1 Separation of responsibilities
-
-Ordinary application code shall:
-
-- Select eligible performances.
-- Calculate time windows.
-- Calculate walking cost.
-- Apply must-see constraints.
-- Calculate freshness and confidence.
-- Score and rank candidates.
-
-OpenAI shall:
-
-- Convert natural-language intent into structured preferences.
-- Convert optional natural-language reports into structured candidate signals.
-- Produce a concise explanation from the top candidates and their reason codes.
-
-The model shall not be the system of record or the sole ranking engine.
-
-### 11.2 Candidate eligibility
-
-A performance is eligible when:
-
-- It is active or begins within the configured horizon, initially 60 minutes.
-- The user can arrive before the configured latest-useful-arrival time.
-- It is not cancelled.
-- It has enough schedule data to evaluate.
-
-The engine may allow an already-started performance if the remaining duration
-after estimated arrival exceeds a minimum, initially 20 minutes.
-
-### 11.3 Candidate score
-
-All component scores are normalized to `0..1`.
+Use **MapLibre GL JS**. Rasterize the PDF to a high-resolution WebP and add it as
+a georeferenced image source. Keep every interactive item in separate CrowdList
+GeoJSON; the PDF is the canvas, not the data model.
 
 ```text
-score =
-    0.30 * tasteFit
-  + 0.20 * mustSeePriority
-  + 0.10 * discoveryValue
-  + 0.10 * scheduleUrgency
-  + 0.10 * liveEnergyFit
-  + 0.10 * crowdComfortFit
-  + 0.05 * dataConfidence
-  - 0.15 * walkingCost
-  - 0.15 * conflictCost
-  - 0.10 * staleDataPenalty
+4  Interaction     selected stage, location puck, report animation
+3  Live activity   stage halos and heat fields
+2  Stage geometry  seven named point/zone features
+1  Visual base     georeferenced official patron-map raster
 ```
 
-Weights are initial heuristics, not learned values. They should be configurable
-and adjusted for explicit intent. For example, “I want somewhere calm” increases
-`crowdComfortFit`; “surprise me” increases `discoveryValue`.
+V1 does not need a path graph, route layer, entrances, amenity markers, or
+festival-wide polygon authoring.
 
-### 11.4 Reason codes
+### 6.3 Geometry preparation
 
-The engine shall produce reason codes before generating prose:
+1. Render the PDF at enough resolution for phone zoom and crop to the map art.
+2. Encode it as a size-conscious WebP.
+3. Choose four WGS84 corner coordinates covering the illustrated grounds.
+4. Place and visually calibrate the seven official stage points in
+   `data/ol26/stages.geojson`.
+5. Confirm the fixed demo coordinate appears on a plausible attendee path.
+6. Store image corners and default camera values in festival configuration, not
+   inside React components.
 
-- `MUST_SEE`
-- `HIGH_TASTE_MATCH`
-- `GOOD_DISCOVERY_MATCH`
-- `STARTING_SOON`
-- `ACTIVE_WITH_TIME_REMAINING`
-- `SHORT_WALK`
-- `CROWD_COMFORT_MATCH`
-- `ENERGY_MATCH`
-- `HIGH_LIVE_CONFIDENCE`
-- `SCHEDULE_CONFLICT`
-- `LONG_WALK`
-- `CROWD_MISMATCH`
-- `LOW_LIVE_CONFIDENCE`
-- `REPORTED_DELAY`
+The illustrated map may not be survey-accurate. Treat GPS placement as useful
+orientation and never as safety, accessibility, or emergency routing guidance.
 
-### 11.5 Recommendation confidence
+### 6.4 Activity rendering
 
-Recommendation confidence is separate from crowd confidence. It considers:
+Render one aggregate activity point per stage, never raw user coordinates.
+Each point derives its radius, opacity, and color from `StagePulse`.
 
-- Schedule completeness.
-- Location availability.
-- Number of taste signals.
-- Freshness of relevant live state.
-- Difference between first- and second-ranked candidates.
+For V1, either a MapLibre heatmap layer or layered circles is acceptable. Prefer
+layered circles if it makes state transitions easier to tune and test. Cap
+continuous animation at the seven stage markers, pause it when the page is
+hidden, and provide a static fallback when WebGL is unavailable.
 
-Use labels rather than percentages in the primary UI:
+## 7. Sponsor data: JamBase
 
-- High confidence
-- Good option
-- Limited live data
+JamBase provides event and artist context. It should enrich the live layer, not
+become a second lineup product.
 
-## 12. Live signal aggregation
+### 7.1 V1 import
 
-### 12.1 Signal types and suggested lifetime
+1. Call JamBase only from a server-side import script or protected route.
+2. Fetch the Outside Lands event and related artist/venue data available under
+   the sponsor credentials.
+3. Normalize relevant records into a small checked-in or database snapshot.
+4. Crosswalk performances to the seven CrowdList stage IDs.
+5. Expose only the current and next performance for each stage to the client.
+6. Display required JamBase attribution and links.
 
-| Signal | Values | Initial lifetime |
-| --- | --- | --- |
-| Crowd level | light, comfortable, busy, packed | 10 minutes |
-| Energy | low, steady, high | 10 minutes |
-| Line | none, moving, long | 8 minutes |
-| Performance status | not_started, active, delayed, ended | Until superseded or scheduled boundary |
-| Entrance condition | clear, moving, congested | 5 minutes |
-| Current song | proposed title/artist | Song duration or 8 minutes |
+Confirm early whether the sponsor record includes stage-level set times. If it
+does not, use a small team-authored `ol26-performance-snippets.json` fixture for
+stage/time assignment while retaining JamBase artist and event identifiers.
 
-### 12.2 Report weight
+### 7.2 Failure behavior
 
-For report `r`:
+- The API key is server-only.
+- Runtime map loads must not depend on a live JamBase request.
+- The latest valid normalized snapshot remains usable when import fails.
+- The repository includes a demo snapshot so local setup works without a key.
+- The UI labels fixture schedule data honestly in demo mode.
 
-```text
-weight(r) =
-  reporterReliability(r.session)
-  * proximityConfidence(r)
-  * exp(-ageMinutes(r) / decayConstant(r.type))
-```
+## 8. OpenAI in V1
 
-P0 defaults:
+OpenAI performs one narrow, visible job: turn optional natural-language reports
+into the same structured signal shape produced by the quick chips.
 
-- `reporterReliability = 1.0`
-- `proximityConfidence = 1.0` for demo and `0.7` when location is unavailable
-- Type-specific time decay
-
-P2 reliability can incorporate prior agreement without creating a public social
-score.
-
-### 12.3 Crowd label aggregation
-
-Map crowd labels to ordinal values:
-
-```text
-light = 0
-comfortable = 1
-busy = 2
-packed = 3
-```
-
-Compute the weighted median rather than the mean to limit the effect of
-outliers. Round only to one of the four named states.
-
-Confidence should rise with:
-
-- Unique recent reporters.
-- Agreement between reports.
-- Verified stage proximity.
-- Recency.
-
-Confidence should fall with:
-
-- Conflicting reports.
-- Reports from one session.
-- Missing location.
-- Rapid coordinated submissions.
-
-Suggested display thresholds:
-
-| Condition | Label |
-| --- | --- |
-| No live reports | No live data |
-| One recent report | Early signal |
-| 2–4 agreeing reporters | Medium confidence |
-| 5+ agreeing reporters | High confidence |
-
-These are product labels, not statistical guarantees.
-
-## 13. Setlist trust model
-
-Setlists are valuable but secondary to the P0 decision experience.
-
-### 13.1 Song states
-
-```text
-proposed -> likely -> confirmed
-                  \-> disputed
-```
-
-- **Proposed:** one human or recognition-provider signal.
-- **Likely:** at least two independent agreeing signals and no material dispute.
-- **Confirmed:** configured human-agreement threshold reached.
-- **Disputed:** conflicting candidate has meaningful support.
-
-### 13.2 Sources
-
-- Manual song entry.
-- Search against an external track catalog, if available.
-- Dedicated music-recognition provider.
-- Human confirmation.
-
-OpenAI must not be used as a music fingerprinting system.
-
-### 13.3 Abuse controls
-
-- One active proposal per session per performance.
-- Rate-limit repeated votes.
-- Require stage proximity for high-weight votes when available.
-- Preserve competing candidates until confidence resolves.
-- Allow an organizer or moderator correction path in P2.
-
-## 14. JamBase integration
-
-### 14.1 Purpose
-
-JamBase is the canonical source for planned live-music entities. CrowdList shall
-not duplicate fuzzy artist identity logic when a stable JamBase identifier is
-available.
-
-### 14.2 API usage
-
-Base URL:
-
-```text
-https://api.data.jambase.com/v3
-```
-
-Authentication:
-
-```http
-Authorization: Bearer ${JBD_API_KEY}
-```
-
-Expected operations:
-
-- Search `/events` by festival name.
-- Resolve the chosen event by exact JamBase identifier.
-- Resolve performers through embedded records or `/artists`.
-- Cache artist imagery, genres, external identifiers, and source URLs when
-  included in the plan/response.
-- Store JamBase `dateModified` for refresh decisions.
-
-### 14.3 Import strategy
-
-For the hackathon:
-
-1. Run a server-side import once.
-2. Review the returned Outside Lands record manually.
-3. Save a normalized cached snapshot.
-4. Add curated stage and coordinate overrides where the source lacks them.
-5. Serve the app from CrowdList's database or bundled demo snapshot.
-
-After the hackathon:
-
-- Use `dateModifiedFrom` delta synchronization.
-- Process deletion tombstones.
-- Preserve source links and identifiers.
-- Log import diffs for review.
-
-### 14.4 Attribution
-
-On plans that require attribution:
-
-- Display an official JamBase mark or “Powered by JamBase.”
-- Keep it visible on views displaying JamBase-backed content.
-- Link attribution to JamBase with `rel="nofollow"`.
-- Link each event to the primary source ticket URL, or fall back to its JamBase
-  event URL.
-- Do not rewrite the supplied source URL.
-
-### 14.5 Failure behavior
-
-- Never expose the API key to the browser bundle.
-- Retain the last valid snapshot when refresh fails.
-- Retry `429` and `5xx` responses with bounded exponential backoff.
-- Surface stale import state only in internal diagnostics; the attendee app
-  should continue from cached data.
-
-## 15. OpenAI integration
-
-### 15.1 Supported tasks
-
-| Task | Input | Output |
-| --- | --- | --- |
-| Preference parsing | User sentence + allowed genres/artists | Structured preference patch |
-| Report parsing | User sentence + current stage context | Structured candidate report |
-| Recommendation explanation | Ranked candidates + reason codes | Short grounded explanation |
-
-### 15.2 Structured output contract
-
-Illustrative recommendation explanation schema:
+Example input:
 
 ```json
 {
-  "recommendedPerformanceId": "performance_123",
-  "leaveInMinutes": 6,
-  "reasonCodes": [
-    "HIGH_TASTE_MATCH",
-    "STARTING_SOON",
-    "CROWD_COMFORT_MATCH"
-  ],
-  "tradeoffCode": "LEAVE_CURRENT_SET_EARLY",
-  "explanation": "Head to Twin Peaks in six minutes...",
-  "alternativePerformanceIds": ["performance_456"]
+  "stageId": "sutro",
+  "selectedCrowd": "busy",
+  "selectedEnergy": "building",
+  "text": "Getting packed fast but the crowd is going wild"
 }
 ```
 
-The server shall validate:
+Expected validated output:
 
-- All referenced IDs exist in the supplied candidates.
-- All reason codes were supplied by the deterministic engine.
-- The explanation meets the length limit.
-- The response contains no unsupported factual claims.
-
-If validation fails, use deterministic templates.
-
-### 15.3 Prompt constraints
-
-System instructions shall require the model to:
-
-- Use only supplied facts.
-- Never invent an artist, stage, time, report, or distance.
-- State uncertainty compactly.
-- Prefer actionable language.
-- Return the required schema only.
-- Avoid safety guarantees.
-- Avoid claiming a person attended a performance based only on intent.
-
-### 15.4 Data minimization
-
-Do not send:
-
-- Exact location history.
-- Unnecessary device identifiers.
-- Raw audio unless a future feature explicitly requires and discloses it.
-- Full user report history when only aggregate stage context is needed.
-
-## 16. Technical architecture
-
-### 16.1 Hackathon recommendation
-
-- **Client:** mobile-first React/Next.js TypeScript PWA.
-- **Map renderer:** MapLibre GL JS with a lightweight vector/raster basemap and
-  CrowdList-owned GeoJSON overlays.
-- **UI:** responsive components over a full-screen map with draggable sheets.
-- **Server:** Next.js server routes or equivalent serverless functions.
-- **Realtime data:** Firebase Firestore subscriptions.
-- **Session:** random client session ID with local persistence.
-- **Official data:** JamBase REST API, imported and cached server-side.
-- **AI:** OpenAI API, called server-side with structured outputs.
-- **Hosting:** a HTTPS-capable platform that supports server routes and
-  environment secrets.
-
-Expo remains a valid post-hackathon native path, but a PWA reduces installation,
-build, and judge-onboarding risk.
-
-### 16.2 System diagram
-
-```mermaid
-flowchart TB
-    JB[JamBase REST API] --> IMP[Server-side importer]
-    IMP --> DB[(Firestore / cached snapshot)]
-    ADMIN[Demo scenario controller] --> DB
-    MAP[Curated GeoJSON map and path graph] --> APP[Mobile PWA]
-    APP <--> DB
-    APP --> API[Server API routes]
-    API --> REC[Deterministic recommendation engine]
-    API --> OAI[OpenAI API]
-    REC --> DB
-    API --> DB
+```json
+{
+  "crowdLevel": "packed",
+  "energyLevel": "electric",
+  "trend": "rising",
+  "summary": "Filling quickly with high energy.",
+  "safetyRelevant": false
+}
 ```
 
-### 16.3 Security boundary
+Constraints:
 
-Only the server may access:
+- Use server-side structured output with a strict schema.
+- Treat stage, time, and selected chips as authoritative context.
+- Permit only enumerated values.
+- Never invent performers, conditions, locations, or report counts.
+- Prefer selected chips when text is ambiguous.
+- Reject or omit unsupported claims.
+- If parsing fails, submit the selected chips and original safe text normally.
+- If content appears safety-critical, do not publish an AI safety conclusion;
+  show a static direction to contact festival staff or emergency services.
+- Do not send browser coordinates, identifiers, or unnecessary history to the
+  model.
 
-- `JBD_API_KEY`
-- `OPENAI_API_KEY`
-- Administrative demo mutation credentials
+V1 intentionally has no general assistant. `Ask CrowdList` is V2.
 
-The client may read public festival state and submit constrained reports. Server
-validation or Firestore security rules must prevent arbitrary modification of
-aggregate state.
+## 9. Live signal behavior
 
-### 16.4 Distribution and runtime contract
+### 9.1 Pulse calculation
 
-Organizer-provided distribution flow:
+A stage pulse combines a seeded demo baseline and recent reports for the
+selected stage. A simple deterministic calculation is sufficient:
 
-```text
-Outside Lands mobile app
-    ↓ Experiences
-OutsideLLMS project gallery
-    ↓ CrowdList project card
-CrowdList public HTTPS site
-```
+- Reports younger than 5 minutes have weight `1.0`.
+- Reports 5–15 minutes old have weight `0.6`.
+- Reports 15–30 minutes old have weight `0.2`.
+- Older reports do not affect the displayed pulse.
+- Structured crowd and energy values map to numeric levels `1–4` and `1–3`.
+- The weighted mean maps back to the nearest display label.
+- Trend compares the newest ten-minute window with the preceding ten minutes.
+- Freshness is the newest contributing report time.
 
-The site shall:
+This is a visualization heuristic, not a capacity estimate. The UI must use
+phrases such as `reported activity` and avoid `occupancy`, percentages, precise
+counts of people, or safety assurances.
 
-- Open from a normal link without installation.
-- Work inside common iOS and Android in-app browsers/webviews.
-- Avoid popups and new-window dependencies.
-- Render the map shell before requesting location or preferences.
-- Require no account for map, schedule, recommendation, or reporting.
-- Preserve useful state across refresh through local storage.
-- Provide a normal browser fallback when opened outside the festival app.
-- Include Open Graph title, description, and a strong project-card image for the
-  OutsideLLMS gallery.
-- Accept optional campaign/source parameters without changing core behavior.
-- Avoid assuming the referrer header will survive an in-app redirect.
+### 9.2 Realtime update
 
-Suggested entry URL:
+1. Validate and store the report.
+2. Recompute or transactionally update the stage pulse.
+3. Publish the updated pulse through the realtime store.
+4. Update the marker, heat field, sheet, freshness, and report count.
+5. Play one short confirmation animation.
 
-```text
-https://crowdlist.example/?festival=outside-lands-2026&source=osl-experiences
-```
+The submitter should see feedback within two seconds on a healthy connection.
+Optimistic UI is acceptable if failure is surfaced and rolled back.
 
-The page should present a meaningful first frame even when location, realtime,
-or OpenAI requests are still pending:
+### 9.3 Demo state
 
-- Official patron map.
-- Current time and festival day.
-- Current/next scheduled artist at each stage.
-- “Choose where you are” and optional “Use my location” controls.
+The repository includes deterministic fixtures for all seven stages. At least
+three visibly different states are present:
 
-The site should progressively enhance after first paint with:
+- Comfortable and chill.
+- Busy and building.
+- Packed and electric.
 
-- Stage Pulse subscriptions.
-- Heat and activity animation.
-- Personalized Next Move.
-- OpenAI-powered recommendation explanations and optional intent/report parsing.
+Submitting the scripted demo report to Sutro must move it to a visibly stronger
+state. A development-only reset action restores the fixture. Demo controls must
+not appear in the public production UI beyond the `Demo live` disclosure.
 
-Recommended gallery metadata:
+## 10. Data contracts
 
-```text
-Name: CrowdList
-Category: Live festival intelligence
-Headline: Know what's happening. Make your next move.
-Description: A live Outside Lands map that combines official schedules, crowd
-signals, and OpenAI to find your best next set.
-CTA: Open live map
-```
-
-The gallery card image should show the official map, one glowing route, two or
-three live stage beacons, and a concise Next Move sheet. It should communicate
-the product before the visitor reads the description.
-
-### 16.5 OpenAI site-product interpretation
-
-This specification interprets the organizer's phrase “ChatGPT/OpenAI site
-product” as a public website whose product experience materially uses OpenAI
-APIs. OpenAI powers personalization, structured interpretation, and grounded
-explanations behind the map; the primary UI is not chat-based. It does not
-currently assume that submission must be a ChatGPT App, Custom GPT, or Apps SDK
-component.
-
-Confirm the exact submission requirement before implementation. If a ChatGPT
-App is mandatory, retain the CrowdList web UI but add the required ChatGPT app
-surface and MCP tool server as a separate adapter. Do not redesign the map as a
-chat transcript.
-
-## 17. Data model
-
-The following shapes are conceptual TypeScript interfaces. They may be adapted
-to Firestore collections.
+The exact storage SDK may add metadata, but these domain shapes are stable for
+V1.
 
 ```ts
-type SourceType = "scheduled" | "observed" | "inferred";
-type CrowdLevel = "light" | "comfortable" | "busy" | "packed";
-type PerformanceStatus =
-  | "scheduled"
-  | "not_started"
-  | "active"
-  | "delayed"
-  | "ended"
-  | "cancelled";
+type StageId =
+  | "lands-end"
+  | "twin-peaks"
+  | "sutro"
+  | "panhandle"
+  | "soma"
+  | "dolores"
+  | "duboce-triangle";
 
-interface Festival {
-  id: string;
-  jambaseId?: string;
-  name: string;
-  startsAt: string;
-  endsAt: string;
-  timezone: string;
-  sourceUrl?: string;
-  importedAt?: string;
-  sourceModifiedAt?: string;
-}
-
-interface Artist {
-  id: string;
-  jambaseId?: string;
-  name: string;
-  imageUrl?: string;
-  genres: string[];
-  sourceUrl?: string;
-  externalIds?: Record<string, string>;
-}
+type CrowdLevel = "easy" | "comfortable" | "busy" | "packed";
+type EnergyLevel = "chill" | "building" | "electric";
+type Trend = "falling" | "steady" | "rising" | "unknown";
 
 interface Stage {
-  id: string;
-  festivalId: string;
+  id: StageId;
   name: string;
-  mapX: number;
-  mapY: number;
-  latitude?: number;
-  longitude?: number;
+  coordinates: [longitude: number, latitude: number];
+  accent: string;
 }
 
-interface MapFeature {
-  id: string;
-  festivalId: string;
-  type:
-    | "boundary"
-    | "path"
-    | "restricted"
-    | "entrance"
-    | "stage_zone"
-    | "amenity"
-    | "landmark";
-  geometry: GeoJSON.Geometry;
-  properties: Record<string, string | number | boolean>;
-  source: "outside_lands" | "open_data" | "curated";
+interface PerformanceSnippet {
+  stageId: StageId;
+  artistName: string;
+  startsAt: string;
+  endsAt: string;
+  jambaseArtistId?: string;
+  jambaseArtistUrl?: string;
+  source: "jambase" | "fixture";
 }
 
-interface RouteNode {
-  id: string;
-  festivalId: string;
-  longitude: number;
-  latitude: number;
-  stageId?: string;
-  entranceId?: string;
-}
-
-interface RouteEdge {
-  id: string;
-  fromNodeId: string;
-  toNodeId: string;
-  geometry: GeoJSON.LineString;
-  baseWalkSeconds: number;
-  accessible: boolean | "unknown";
-  restricted: boolean;
-}
-
-interface HeatCell {
-  id: string;
-  festivalId: string;
-  geometry: GeoJSON.Point | GeoJSON.Polygon;
-  activityWeight: number;
-  crowdLevel?: CrowdLevel;
-  confidence: "early" | "medium" | "high";
-  calculatedAt: string;
-  validUntil: string;
-}
-
-interface Performance {
-  id: string;
-  festivalId: string;
-  stageId: string;
-  artistId: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  observedStart?: string;
-  observedEnd?: string;
-  status: PerformanceStatus;
-  scheduleSource: "jambase" | "festival" | "curated";
+interface StagePulse {
+  stageId: StageId;
+  crowdLevel: CrowdLevel;
+  energyLevel: EnergyLevel;
+  trend: Trend;
+  reportCount: number;
+  updatedAt: string;
+  source: "seeded-demo" | "community" | "mixed";
 }
 
 interface LiveReport {
   id: string;
-  festivalId: string;
-  stageId: string;
-  performanceId?: string;
-  sessionId: string;
-  type: "crowd" | "energy" | "line" | "performance_status" | "entrance";
-  value: string;
+  stageId: StageId;
+  crowdLevel: CrowdLevel;
+  energyLevel: EnergyLevel;
+  trend: Trend;
+  text?: string;
+  summary?: string;
   createdAt: string;
-  expiresAt: string;
-  proximityConfidence?: number;
-  inputMode: "tap" | "text" | "voice" | "demo";
+  source: "chips" | "chips-and-openai";
+  anonymousSessionHash: string;
 }
 
-interface StagePulse {
-  stageId: string;
+interface ParsedReport {
   crowdLevel?: CrowdLevel;
-  crowdTrend?: "falling" | "steady" | "building";
-  performanceStatus?: PerformanceStatus;
-  confidence: "none" | "early" | "medium" | "high";
-  uniqueReporterCount: number;
-  calculatedAt: string;
-  validUntil: string;
-}
-
-interface UserPreferences {
-  sessionId: string;
-  preferredGenres?: string[];
-  discoveryPreference: number;
-  energyPreference: "low" | "balanced" | "high";
-  crowdPreference: "energy" | "balanced" | "space";
-  maxWalkMinutes?: number;
-  currentStageId?: string;
-  temporaryConstraints?: {
-    artistIds?: string[];
-    requiredStageId?: string;
-    requiredArrivalTime?: string;
-  };
-}
-
-interface Recommendation {
-  id: string;
-  sessionId: string;
-  performanceId: string;
-  alternativePerformanceIds: string[];
-  leaveInMinutes: number;
-  walkingMinutes: number;
-  reasonCodes: string[];
-  tradeoffCode?: string;
-  explanation: string;
-  confidence: "limited" | "good" | "high";
-  generatedAt: string;
-  inputsVersion: string;
+  energyLevel?: EnergyLevel;
+  trend: Trend;
+  summary?: string;
+  safetyRelevant: boolean;
 }
 ```
 
-### 17.1 Suggested collections
-
-```text
-festivals/{festivalId}
-festivals/{festivalId}/artists/{artistId}
-festivals/{festivalId}/stages/{stageId}
-festivals/{festivalId}/performances/{performanceId}
-festivals/{festivalId}/reports/{reportId}
-festivals/{festivalId}/stagePulses/{stageId}
-sessions/{sessionId}
-sessions/{sessionId}/recommendations/{recommendationId}
-```
-
-## 18. Server interfaces
-
-Exact routing may change, but responsibilities should remain stable.
-
-### `GET /api/festivals/:festivalId`
-
-Returns the cached festival, stages, artists, performances, and attribution
-metadata required for initial render.
-
-### `POST /api/recommendations`
-
-Request:
-
-```json
-{
-  "festivalId": "outside-lands-2026",
-  "sessionId": "session_abc",
-  "currentStageId": "sutro",
-  "currentTime": "2026-08-07T17:12:00-07:00",
-  "intent": "something energetic but not packed"
-}
-```
-
-Response:
-
-```json
-{
-  "recommendation": {},
-  "alternatives": [],
-  "liveDataAsOf": "2026-08-07T17:11:30-07:00"
-}
-```
-
-### `POST /api/reports`
-
-Accepts a constrained structured report. It validates allowed values, applies
-rate limits, writes the report, and triggers or schedules stage aggregation.
-
-### `POST /api/reports/parse`
-
-P1 endpoint. Parses text into a candidate structured report but does not publish
-until the user confirms it.
-
-### `POST /api/admin/demo-state`
-
-Demo-only endpoint protected by a local secret or disabled in public production.
-It advances the scripted festival scenario.
-
-### `POST /api/admin/import-jambase`
-
-Administrative server-side endpoint or script. It shall never be callable by an
-untrusted browser session.
-
-## 19. Festival map and navigation
-
-### 19.1 Available Outside Lands data
-
-As of this specification, Outside Lands publicly provides:
-
-- A one-page 2026 patron-map PDF linked from its official information page.
-- An official mobile app that displays the map and current schedule.
-- Public schedule and lineup pages.
-- Public pages describing the seven stages and their Golden Gate Park areas.
-- Public entrance, accessibility, transportation, and amenity information.
-
-No documented public Outside Lands developer API, GeoJSON feed, routing graph,
-or live crowd feed has been identified. The website/app may use private content
-services internally; CrowdList must not depend on undocumented endpoints without
-explicit organizer permission.
-
-The hackathon team should ask organizers for:
-
-- A vector map, GIS export, or high-resolution transparent map asset.
-- Stage, path, and gate coordinates.
-- The internal schedule/content feed, if participants may use it.
-- Accessibility and restricted-path data.
-
-### 19.2 Recommended map implementation
-
-Use **MapLibre GL JS** as the renderer. It provides geospatial camera behavior,
-GeoJSON sources, symbols, lines, fills, heatmaps, and smooth animation without
-locking the data model to a proprietary map vendor.
-
-The map comprises five independently controlled layers:
-
-```text
-5  UI and animation       Next Move, destination beacon, stage pulse, fog/energy
-4  Live intelligence      heat cells, crowd trend, active routes
-3  Festival operations    stages, entrances, restricted/ADA zones
-2  Festival paths         curated walk graph and named paths
-1  Visual base            georeferenced official patron map and fallback basemap
-```
-
-The official PDF is the approved visual base for the hackathon build. Rasterize
-it to a high-resolution WebP, crop it to the usable map artwork, and georeference
-it as a MapLibre image source. Interactive geometry must still be stored
-separately as GeoJSON so it can be selected, routed, animated, and made
-accessible. The PDF supplies the visual character; CrowdList supplies the
-behavior.
-
-Keep the original PDF URL and attribution in project metadata so the base can be
-refreshed if Outside Lands publishes a revision.
-
-### 19.3 Geometry preparation
-
-For the hackathon:
-
-1. Render the official PDF at two or three times the target screen resolution.
-2. Crop and compress the map artwork to WebP while retaining readable labels.
-3. Establish a WGS84 bounding box covering the festival grounds.
-4. Align the raster using at least four recognizable Golden Gate Park anchors.
-5. Validate the transform against the seven stage locations and entrances.
-6. Place interactive stage zones above the raster at their known locations:
-   - Lands End / Polo Field
-   - Twin Peaks / Hellman Hollow
-   - Sutro / Lindley Meadow
-   - Panhandle
-   - SOMA / Marx Meadow
-   - Dolores'
-   - Duboce Triangle / McLaren Pass
-7. Draw only the primary attendee paths required for the demo.
-8. Add interactive entrances; retain static amenity labels from the PDF without
-   rebuilding the directory.
-9. Validate route geometry and travel estimates with organizers or an attendee
-   familiar with the grounds.
-
-Because the patron map is illustrated rather than a guaranteed GIS survey, the
-overlay may require a mild perspective/affine adjustment. GPS and route logic
-must use the GeoJSON coordinates, not pixel measurements from the PDF.
-
-Use a small map-authoring script or a visual GeoJSON editor after the hackathon;
-do not hard-code complex coordinates inside UI components.
-
-### 19.4 Grounds routing
-
-Public street-routing APIs are unsuitable inside a temporary festival because
-fences, closures, checkpoints, one-way flows, and temporary paths are absent or
-wrong. CrowdList shall route over a curated node-edge graph.
-
-Use Dijkstra or A* with an adjustable edge cost:
-
-```text
-edgeCost =
-  baseWalkSeconds
-  * liveCongestionMultiplier
-  + accessibilityPenalty
-  + restrictionPenalty
-```
-
-P0 may set `liveCongestionMultiplier = 1` and use verified stage-to-stage ETAs
-as a fallback. A small matrix remains useful when the path graph is incomplete:
+Location stays client-side:
 
 ```ts
-const fallbackWalkingMinutes = {
-  "lands-end:sutro": 8,
-  "lands-end:twin-peaks": 14,
-  "sutro:twin-peaks": 9
-};
+interface LocationFix {
+  coordinates: [longitude: number, latitude: number];
+  accuracyMeters?: number;
+  source: "browser" | "demo";
+}
+
+interface LocationProvider {
+  getCurrentPosition(): Promise<LocationFix>;
+}
 ```
 
-Do not ask a language model to estimate walking time or invent a route.
+## 11. Technical architecture
 
-### 19.5 Heatmap rendering
+### 11.1 Recommended stack
 
-The visual heatmap is generated from aggregate `HeatCell` records, never raw
-user coordinates. For P0, stage-zone centroids and simulated aggregate points
-are sufficient. Later versions may use privacy-preserving grid or H3 cells.
+- **Web:** Next.js, React, and TypeScript.
+- **Map:** MapLibre GL JS.
+- **Realtime and persistence:** Firebase / Firestore.
+- **Festival context:** server-side JamBase import and normalized snapshot.
+- **AI:** server-side OpenAI API with strict structured output.
+- **Hosting:** any public HTTPS host compatible with the OutsideLLMS gallery
+  webview.
 
-Render separate concepts carefully:
+### 11.2 Request flow
 
-- **Crowd comfort:** light through packed, using a smooth translucent field.
-- **Activity/energy:** animated stage beacon or waveform, not the density color.
-- **Confidence:** opacity or texture plus a readable label.
-- **Movement:** short directional particles only when aggregate flow is known.
+```mermaid
+flowchart LR
+    G[Outside Lands app / Experiences] --> W[CrowdList web app]
+    W --> M[MapLibre map]
+    M --> S[Stage Pulse sheet]
+    S --> R[Report composer]
+    R --> A[Report API]
+    A --> O[OpenAI parser when text exists]
+    A --> F[Firestore reports and pulses]
+    F --> M
+    J[JamBase import] --> C[Normalized schedule snapshot]
+    C --> S
+```
 
-The heatmap must not imply person-level tracking or exact occupancy.
+Secrets, OpenAI calls, JamBase imports, input validation, rate limiting, and
+persistence belong on the server. The client receives only public map, pulse,
+and now/next data.
 
-### 19.6 Outside Lands visual language
+### 11.3 Minimal server interfaces
 
-CrowdList should feel native to the wooded, foggy, playful character of Outside
-Lands while retaining an original identity.
+`GET /api/bootstrap`
 
-Recommended visual motifs:
+Returns festival configuration, stages, current/next performance snippets,
+initial pulses, data mode, and attribution. This may be statically cached.
 
-- Slow fog wisps at the map edges, disabled under reduced motion.
-- Cypress/eucalyptus green geographic context.
-- International-orange route highlights.
-- Stage-specific accent colors.
-- Soft concentric sound waves around an active performance.
-- Small firefly-like particles for high energy, capped for performance.
-- A disco shimmer for a newly confirmed live moment.
-- A destination beacon that expands like a vinyl groove.
+`POST /api/reports`
 
-Animation semantics must be stable:
+Validates quick-chip values and text, invokes parsing only when text exists,
+stores the report, updates the pulse, and returns the accepted report and pulse.
 
-- Faster pulse means higher reported energy, not a larger crowd.
-- Larger heat field means broader crowd activity.
-- Lower opacity means lower confidence or older data.
-- Fog is decorative and must not encode risk or navigation state.
+`POST /api/reports/parse`
 
-Use characters or branded artwork already present in the approved patron map as
-part of that base. Keep CrowdList's new interactive icons and animations
-visually compatible but separately authored so their meaning remains clear.
+An internal or separately rate-limited endpoint if parsing is split from report
+creation. It must not be necessary for chip-only reports.
 
-### 19.7 Performance budget
+`POST /api/dev/reset-demo`
 
-- Target smooth interaction on a typical recent phone.
-- Keep simultaneous animated stage beacons under eight.
-- Pause nonessential animation when the page is hidden.
+Development-only. Restores deterministic seeded pulses. It must be disabled or
+protected in production.
+
+The JamBase import may be a script rather than a public HTTP endpoint.
+
+### 11.4 Suggested project shape
+
+```text
+app/
+  page.tsx
+  api/bootstrap/route.ts
+  api/reports/route.ts
+components/
+  map/CrowdMap.tsx
+  map/StageLayer.tsx
+  map/ActivityLayer.tsx
+  stage/StagePulseSheet.tsx
+  reports/ReportComposer.tsx
+lib/
+  location/browser.ts
+  location/demo.ts
+  openai/parse-report.ts
+  pulse/calculate.ts
+  jambase/import.ts
+  validation.ts
+data/ol26/
+  festival.json
+  stages.geojson
+  performance-snippets.json
+  demo-pulses.json
+public/maps/
+  ol26-patron-map.webp
+```
+
+Keep this organization small. Do not introduce a plugin system, generalized
+festival CMS, recommendation engine, routing engine, or event bus in V1.
+
+## 12. Reliability, privacy, and accessibility
+
+### Reliability
+
+- Map and fixture data load without JamBase, OpenAI, or Firestore credentials.
+- Chip-only reports remain valid when OpenAI is unavailable.
+- JamBase data is read from a cached snapshot at runtime.
+- Network failures preserve the last visible map and show a compact retry state.
+- The demo can be reset and repeated without manual database editing.
+
+### Privacy and abuse controls
+
+- Do not persist location.
+- Use a rotating anonymous session hash only for basic rate limiting.
+- Limit report text to 140 characters.
+- Validate every enum and stage ID server-side.
+- Rate-limit report creation.
+- Escape user text and apply basic moderation before display.
+- Do not represent fan reports as official festival information.
+- Include `Report an issue` or omit public text if moderation cannot be made safe
+  in the hackathon window.
+
+### Accessibility
+
+- All stage markers are keyboard focusable and have descriptive labels.
+- Stage state is available in text, not color alone.
+- Bottom sheets manage focus and can be dismissed without a gesture.
+- Touch targets are at least 44 by 44 CSS pixels.
+- Contrast meets WCAG AA where controls overlay the illustrated map.
 - Respect `prefers-reduced-motion`.
-- Aggregate heat points before sending them to the client.
-- Avoid rendering individual attendee markers.
-- Use a static/list fallback if WebGL is unavailable.
+- Provide a simple stage list fallback if WebGL is unavailable.
 
-## 20. Realtime behavior
+## 13. Build sequence
 
-### 20.1 Update sequence
+Each step should leave the project runnable. Finish a step before expanding
+scope.
 
-1. Client submits report.
-2. Server validates and stores it.
-3. Stage aggregate is recalculated.
-4. Firestore publishes the new Stage Pulse.
-5. Connected clients update the map and stage page.
-6. Sessions whose active recommendation materially depends on that stage are
-   recalculated or marked stale.
-7. The affected client displays a recommendation-change notice.
+1. **Map foundation**
+   - Create the mobile shell and full-screen MapLibre view.
+   - Process and georeference the official map asset.
+   - Load seven stages from GeoJSON.
+2. **Fixture-backed product loop**
+   - Load now/next snippets and seeded pulses.
+   - Render stage activity states.
+   - Implement the Stage Pulse sheet.
+3. **Location**
+   - Add browser and demo `LocationProvider` implementations.
+   - Add explicit location control, denial state, and puck.
+4. **Reporting and realtime**
+   - Build the quick report composer and validation.
+   - Persist reports and update pulses.
+   - Subscribe the map and sheet to pulse changes.
+5. **OpenAI report interpretation**
+   - Add the strict parser for optional text.
+   - Preserve chip-only fallback and safety handling.
+6. **JamBase sponsor integration**
+   - Import and normalize the available event/artist data.
+   - Crosswalk now/next snippets and add attribution.
+7. **Demo and polish**
+   - Tune activity motion and reduced-motion mode.
+   - Add deterministic reset, degraded states, and webview checks.
+   - Run the acceptance checklist and stop V1 scope.
 
-### 20.2 Material change
+## 14. V1 acceptance criteria
 
-A change is material when it may alter a decision, including:
+V1 is demo-ready only when all of these are true:
 
-- Crowd state crosses a category boundary.
-- A performance changes to delayed, active, ended, or cancelled.
-- A recommendation's destination becomes infeasible.
-- Walking time or current location changes substantially.
-- A must-see performance approaches its leave-now threshold.
+- [ ] A fresh visitor lands directly on a useful mobile map without login.
+- [ ] The approved 2026 Outside Lands map is visible and readable.
+- [ ] All seven stage hotspots are loaded from GeoJSON and are tappable.
+- [ ] At least three seeded stage activity states are visually distinct.
+- [ ] A stage sheet shows only now/next, pulse, freshness, reports, and attribution.
+- [ ] Location appears after a user action in browser mode.
+- [ ] Demo location works without requesting permission and is clearly labeled.
+- [ ] Denied location permission does not block any other feature.
+- [ ] A chip-only report can be completed in two selections plus submit.
+- [ ] Optional text is parsed into validated fields by OpenAI when available.
+- [ ] A report succeeds without OpenAI when parsing is unavailable.
+- [ ] The submitted report changes the selected stage on the map within two
+      seconds under normal demo conditions.
+- [ ] No raw or historical user location is sent to the server.
+- [ ] JamBase-backed data is cached and visibly attributed.
+- [ ] Fixture mode works with no sponsor or AI credentials.
+- [ ] The experience works in the expected in-app webview and a mobile browser.
+- [ ] Reduced motion, textual state labels, focus management, and touch target
+      requirements pass a manual check.
+- [ ] No V2 navigation, placeholders, or incomplete controls appear.
 
-Do not regenerate AI prose for every minor report. Recalculate deterministic
-state first and invoke explanation generation only for material changes.
+## 15. Tests and demo
 
-## 21. Privacy, safety, and abuse resistance
+### Required checks
 
-### 21.1 Privacy
+- Unit-test report validation and pulse weighting at age boundaries.
+- Unit-test OpenAI output validation and chip-only fallback.
+- Unit-test browser/demo location-provider selection.
+- Integration-test `POST /api/reports` through pulse update.
+- End-to-end test: open map → tap Sutro → report → observe changed pulse.
+- Test small-screen layout, location denial, offline fixture load, and reduced
+  motion manually.
 
-- Use a random session ID; do not require an email.
-- Treat location permission as optional.
-- Store stage-zone identity instead of precise history whenever possible.
-- Do not expose reporter identity to other attendees.
-- Expire raw presence observations rapidly.
-- Provide a clear “Stop using my location” control.
-- Avoid sending location to third-party AI services.
+### 90-second demo script
 
-### 21.2 Safety language
+1. Open CrowdList from the Experiences path and point out that it lands on the
+   official map, not a chat screen.
+2. Show the seven stages pulsing with different fresh activity states.
+3. Tap the location button and show the labeled demo puck.
+4. Open Sutro and show JamBase-linked now/next context plus fresh Stage Pulse.
+5. Choose `Packed` and `Electric`, add `Filling fast and the crowd is going
+   wild`, and submit.
+6. Show OpenAI's structured summary and the immediate realtime change to the
+   Sutro marker and pulse.
+7. Close with the boundary: the official app plans the day; CrowdList reveals
+   what the grounds feel like right now.
 
-Allowed:
+## 16. Defaults and remaining confirmations
 
-- “Reported as packed.”
-- “Crowd appears to be building.”
-- “Limited live data.”
+These questions do not block the one-shot build; use the stated default until
+the team confirms otherwise.
 
-Disallowed:
-
-- “This route is safe.”
-- “The stage is at 84% capacity.”
-- “There is no crowd risk.”
-- “Emergency route.”
-
-### 21.3 Abuse controls
-
-P0:
-
-- Server-side enum validation.
-- Per-session report cooldown.
-- One effective vote per signal type per short window.
-- Input length limits.
-- No arbitrary HTML or public free-text feed.
-
-P2:
-
-- Proximity-based weight.
-- Device and network anomaly detection.
-- Reliability based on historical agreement.
-- Coordinated-report detection.
-- Organizer moderation and incident review.
-
-## 22. Reliability and degraded modes
-
-| Failure | Required behavior |
+| Confirmation | Default |
 | --- | --- |
-| JamBase unavailable | Use last imported snapshot |
-| OpenAI unavailable | Use deterministic preference defaults and explanation templates |
-| Firestore realtime unavailable | Show cached state and “Live updates paused” |
-| Location denied | Ask user to select current stage |
-| No crowd reports | Show “No live data” and rely on schedule |
-| Conflicting reports | Lower confidence and show disagreement, not a definitive state |
-| Map asset fails | Provide list-based stage navigation |
-| Poor connectivity | Cache festival shell and schedule where practical |
-
-No degraded mode may invent live data outside the explicit demo environment.
-
-## 23. Accessibility
-
-- Target WCAG 2.2 AA for the attendee experience.
-- Maintain minimum touch targets of approximately 44 by 44 CSS pixels.
-- Do not encode crowd state with color alone.
-- Support screen-reader names for map markers and controls.
-- Respect reduced-motion preferences.
-- Keep primary actions reachable with one thumb on common mobile sizes.
-- Use plain-language recommendation explanations.
-- Provide a list alternative to the visual map.
-- Ensure report controls are usable without dragging or precise gestures.
-
-## 24. Analytics and success metrics
-
-### 24.1 North-star metric
-
-**Meaningful map actions per active festival session**
-
-A meaningful map action occurs when a user inspects a stage, starts a route,
-accepts a Next Move, changes a map layer, or contributes a live report. This
-captures the primary map experience without forcing every useful session through
-recommendations.
-
-### 24.2 Supporting metrics
-
-- Time from site open to interactive map.
-- Stage inspections per active session.
-- Routes started per active session.
-- Recommendation acceptance rate.
-- Alternative-selection rate.
-- Recommendation rejection reason.
-- Contextual report conversion rate.
-- Reports per active session.
-- Percentage of stages with fresh live data.
-- Recommendation changes caused by live signals.
-- Must-see conflict avoidance rate.
-- My Day completion/share rate, when implemented.
-
-### 24.3 Trust metrics
-
-- Percentage of facts with visible source state.
-- Report agreement rate.
-- Correction/dispute rate.
-- Percentage of recommendations using stale live data.
-- AI response validation failure rate.
-
-### 24.4 Suggested events
-
-```text
-onboarding_started
-onboarding_completed
-map_interactive
-map_layer_changed
-recommendation_viewed
-recommendation_accepted
-recommendation_rejected
-alternative_selected
-stage_viewed
-report_prompted
-report_submitted
-report_parse_confirmed
-recommendation_changed_live
-location_permission_result
-jambase_import_completed
-ai_fallback_used
-```
-
-Do not include exact coordinates or raw report text in general analytics.
-
-## 25. Demo mode
-
-The hackathon demo must be scripted but clearly identified internally as a
-simulation. It must not contaminate production/community data.
-
-### 25.1 Required scenario
-
-Initial state:
-
-- User likes electronic and indie music.
-- User prefers energetic but not packed crowds.
-- User is currently at Sutro.
-- Lands End is the initial best recommendation.
-
-Demo transition:
-
-- A report says Lands End is packed and delayed.
-- The report is structured and published.
-- Lands End Stage Pulse updates.
-- The recommendation changes to Twin Peaks.
-- The explanation names the new live tradeoff.
-
-### 25.2 Demo controls
-
-- Reset scenario.
-- Advance simulated time.
-- Publish preconfigured report.
-- Toggle JamBase/API failure indicator.
-- Toggle OpenAI failure to demonstrate deterministic fallback, if useful.
-
-### 25.3 Demo script
-
-1. **Problem, 10 seconds:** “The official map shows where things are. CrowdList
-   shows what the festival feels like right now.”
-2. **Living map, 25 seconds:** Open directly on the official map; pan across
-   animated stages, schedule progress, paths, and crowd activity.
-3. **Stage inspection, 20 seconds:** Tap Lands End and reveal JamBase-backed
-   schedule context plus fresh Stage Pulse evidence.
-4. **Live contribution, 20 seconds:** Submit a two-tap packed/delayed report.
-5. **Visible response, 25 seconds:** Show the map heat, stage beacon, and
-   confidence change without reloading.
-6. **Optional intelligence, 25 seconds:** Expand the suggestion pill and show the
-   revised route to Twin Peaks with a grounded explanation. Briefly open the
-   secondary Ask CrowdList sheet, enter one constraint-rich request, and show
-   the answer become map filters and a route rather than a chat transcript.
-7. **Close, 15 seconds:** “JamBase knows what is scheduled. The crowd knows what
-   is happening. CrowdList makes both visible.”
-
-## 26. Testing strategy
-
-### 26.1 Unit tests
-
-- Candidate eligibility around start/end boundaries.
-- Walking-time lookup and missing-route fallback.
-- Score calculation and intent-adjusted weights.
-- Expired live-report exclusion.
-- Weighted-median crowd aggregation.
-- Confidence reduction for disagreement.
-- Must-see conflict detection.
-- AI response ID and reason-code validation.
-
-### 26.2 Integration tests
-
-- JamBase response normalization into local schema.
-- Report submission to Stage Pulse update.
-- Stage Pulse update to recommendation invalidation.
-- OpenAI failure to deterministic fallback.
-- Location denial to manual-stage selection.
-
-### 26.3 End-to-end tests
-
-- Open the gallery URL and interact with the map before granting permissions.
-- Inspect a stage and its schedule context.
-- Submit a crowd report and observe the updated stage state.
-- Expand Next Move and start a route.
-- Execute the full scripted demo transition.
-- Refresh and retain local preferences.
-
-### 26.4 Manual demo checklist
-
-- Production URL opens from a QR code on cellular data.
-- No secret appears in browser source or network-visible client configuration.
-- Reset demo works.
-- JamBase attribution is visible.
-- Map works on at least one iPhone-sized and one Android-sized viewport.
-- The complete story can be demonstrated in under three minutes.
-- A backup recording or screenshots exist in case venue connectivity fails.
-
-## 27. Build sequence
-
-The implementation sequence should optimize for a complete vertical slice.
-
-### Phase 1: foundation
-
-- Scaffold the mobile PWA.
-- Define seed data and the normalized schema.
-- Convert and georeference the official patron-map PDF.
-- Build the full-screen map, stage zones, paths, and map interaction sheets.
-- Add JamBase attribution.
-
-### Phase 2: complete live map loop
-
-- Build Stage Pulse.
-- Add one-tap reporting and realtime aggregation.
-- Make reports visibly update map activity and confidence.
-
-### Phase 3: optional decision intelligence
-
-- Implement lightweight preferences.
-- Implement deterministic ranking.
-- Build the compact suggestion pill, detail sheet, and route overlay.
-
-### Phase 4: sponsor intelligence
-
-- Connect the JamBase importer or verified snapshot.
-- Add OpenAI preference/report parsing and explanation generation.
-- Add validated fallbacks.
-
-### Phase 5: demo hardening
-
-- Add demo controls and scripted state.
-- Test degraded modes.
-- Polish mobile interaction and accessibility.
-- Record the backup demo.
-
-### Phase 6: stretch
-
-- Add alternatives.
-- Add current-song proposal/confirmation.
-- Add a minimal My Day timeline.
-
-## 28. Acceptance criteria
-
-The P0 hackathon build is complete only when all of the following are true:
-
-1. The OutsideLLMS project link opens a useful map without login or installation.
-2. The map shell and current schedule render before any permission prompt.
-3. A new user can reach a personalized, grounded recommendation in under 45
-   seconds.
-4. The recommendation names a real configured artist, performance, and stage.
-5. The recommendation shows timing, reason, tradeoff, and confidence.
-6. JamBase-backed data is cached server-side and visibly attributed.
-7. No JamBase or OpenAI secret is present in the client bundle.
-8. The map shows every configured stage and remains usable without location.
-9. A user can submit a valid live report in two taps.
-10. A submitted report changes Stage Pulse without a page reload.
-11. A material stage change can alter the Next Move recommendation.
-12. Scheduled, observed, and inferred facts are distinguishable.
-13. The experience does not present an unsupported exact crowd percentage.
-14. OpenAI output is schema-validated and has a deterministic fallback.
-15. An Ask CrowdList request can change visible map filters and routing without
-    inventing artists, stages, times, distances, or live conditions.
-16. The scripted demo resets and runs predictably.
-17. The primary story can be demonstrated in under three minutes.
-18. The site remains useful when there are no live reports.
-
-## 29. Risks and mitigations
-
-| Risk | Consequence | Mitigation |
-| --- | --- | --- |
-| Insufficient users | Empty or misleading live layer | Schedule-first value, contextual prompts, explicit “no live data,” demo simulation |
-| JamBase lacks stage detail | Incomplete schedule mapping | Curated stage override; ask sponsor for partner feed |
-| Live music recognition fails | Broken headline demo | Keep recognition out of P0; use human proposal and confirmation |
-| AI hallucinates | Loss of trust | Deterministic ranking, strict schema, ID validation, templates |
-| Venue connectivity is poor | Demo/app failure | Cache snapshot, PWA shell, scripted local state, backup recording |
-| Crowd reports are manipulated | Bad recommendations | Expiry, rate limits, agreement, proximity/reputation later |
-| Location concerns | Permission refusal | Coarse zones, optional permission, manual stage selection |
-| Feature sprawl | No complete demo | Enforce P0/P1 boundary and vertical build sequence |
-| Official app already has schedule/map | Weak differentiation | Lead with live decision changes, not schedule browsing |
-| “Crowd” implies safety accuracy | Liability and trust risk | Qualitative comfort labels, confidence, no safety claims |
-
-## 30. Open questions
-
-Resolve these in priority order:
-
-1. Does the sponsor-provided JamBase Outside Lands record contain stage-level
-   assignments and exact performance times?
-2. Is a private/custom Outside Lands feed available to hackathon teams?
-3. Which JamBase attribution terms apply to the sponsor/hackathon access?
-4. Can organizers provide a higher-resolution raster or vector version of the
-   official 2026 patron map?
-5. Can organizers provide GIS/GeoJSON stage, path, gate, restricted, and
-   accessible-route geometry?
-6. Are stage-to-stage walking estimates available from organizers?
-7. Can the build use a simulated future festival date while the buildathon takes
-   place before the festival?
-8. Does “ChatGPT/OpenAI site product” mean a standalone OpenAI-powered website,
-   a ChatGPT App built with Apps SDK, a Custom GPT, or another submission type?
-9. Which OpenAI capabilities or credits are provided at the event?
-10. What project-card metadata, image dimensions, and URL requirements does the
-    OutsideLLMS gallery impose?
-11. Will the winning site open in the system browser or an Outside Lands in-app
-    webview?
-12. What live information may organizers be willing to validate during the
-    actual festival?
-
-## 31. Post-hackathon roadmap
-
-### V1: festival pilot
-
-- One real festival.
-- Official schedule ingestion.
-- Personalized Next Move.
-- One-tap live reporting.
-- Coarse Stage Pulse.
-- Operational moderation tools.
-
-### V1.5: trusted fan network
-
-- Artist-specific contributor reliability.
-- Set start/end verification.
-- Crowd-verified songs.
-- My Day recap and playlist export.
-- Notifications for material recommendation changes.
-
-### V2: embedded festival intelligence
-
-- Official app SDK/module.
-- Organizer live dashboard.
-- Privacy-preserving passive stage-zone signals.
-- Congestion-aware walking estimates.
-- Shared group constraints.
-- Accessible routing.
-
-### V3: cross-festival graph
-
-- Multi-festival preference profile.
-- Discovery informed by real attendance behavior.
-- Artist/superfan activations.
-- Predictive crowd movement.
-- Historical live-performance intelligence layered over the JamBase graph.
-
-## 32. Business and distribution hypothesis
-
-CrowdList should pursue B2B2C distribution rather than ask users to install a
-separate app for every festival.
-
-### Attendee product
-
-- Free at the point of use.
-- Opened through the official festival app, mobile web, or QR code.
-- No registration required for core value.
-
-### Organizer product
-
-- White-label module or SDK.
-- Privacy-preserving aggregate live state.
-- Configurable stages, prompts, and official overrides.
-- Operational dashboard and communications in later versions.
-
-### Artist and sponsor product
-
-- Contextual artist discovery.
-- Superfan contribution programs.
-- Branded, opt-in festival moments that do not distort recommendations.
-
-CrowdList must not fund the product by selling precise attendee location data.
-
-## 33. Defensibility
-
-The language model, schedule, and map are not durable moats on their own.
-
-The defensible asset is a trusted experiential graph keyed to stable live-music
-entities:
-
-```text
-festival × stage × performance × time
-    ├── actual start and end
-    ├── crowd comfort and movement
-    ├── delays and operational state
-    ├── audience energy
-    ├── fan-confirmed songs
-    └── recommendation outcomes
-```
-
-JamBase supplies the durable identity graph. CrowdList accumulates the live
-experiential graph and learns which tradeoffs lead to accepted decisions.
-
-## 34. Messaging
-
-### Landing-page headline
-
-> The Outside Lands map, alive.
-
-### Supporting copy
-
-> CrowdList adds live stage energy, crowd comfort, movement, and fan reports to
-> the familiar official map.
-
-### Thirty-second pitch
-
-> The Outside Lands app already handles the lineup, schedule, official map, and
-> festival information. CrowdList adds the missing live layer. It combines
-> JamBase performance context with fresh reports from fans on the ground, then
-> turns the official map into a living view of stage energy, crowd comfort, and
-> movement. OpenAI can interpret those signals when a fan wants help, while the
-> map remains the product.
-
-### Sponsor line
-
-> Outside Lands supplies the place. JamBase knows what is scheduled. The crowd
-> shows what is happening. CrowdList puts it all on the map.
-
-## 35. External references
-
-- OutsideLLMS 2026 event and challenge brief: <https://outsidellms.com/>
-- Official Outside Lands information and map link: <https://sfoutsidelands.com/info/>
+| Does JamBase expose stage-level Outside Lands times? | Use fixture assignments with JamBase artist/event IDs |
+| Is an organizer vector map available? | Use the approved PDF-derived WebP and team-authored stage GeoJSON |
+| Which realtime credentials are ready? | Run fixture/in-memory mode locally, then connect Firestore |
+| What are the gallery webview restrictions? | Build responsive HTTPS with no install, popup, or account dependency |
+| Are public free-text observations safe for the demo? | Show only predefined/seeded summaries; keep new raw text private if moderation is incomplete |
+
+## 17. Explicit stop line
+
+After the acceptance criteria pass, stop and review V1 with the team. Only then
+select V2 work based on remaining time. The first candidates are recommendation,
+routing, Ask CrowdList, and song recognition/setlists, but none is implied by or
+required for this specification.
+
+## 18. External references
+
+- OutsideLLMS 2026: <https://outsidellms.com/>
+- OutsideLLMS event listing: <https://luma.com/OutsideLLMS>
+- Official Outside Lands information: <https://sfoutsidelands.com/info/>
 - Official 2026 patron map PDF: <https://sfoutsidelands.com/assets/maps/ol26-patron-map_73026.pdf>
-- Official Outside Lands stage guide: <https://sfoutsidelands.com/stages/>
-- Official Outside Lands schedule page: <https://sfoutsidelands.com/schedule/>
-- JamBase Data overview: <https://data.jambase.com/data>
+- Official Outside Lands stages: <https://sfoutsidelands.com/stages/>
+- Official Outside Lands schedule: <https://sfoutsidelands.com/schedule/>
+- JamBase Data: <https://data.jambase.com/data>
 - JamBase API getting started: <https://data.jambase.com/api/docs/getting-started>
 - JamBase API reference: <https://data.jambase.com/api/reference>
-- JamBase attribution requirements: <https://data.jambase.com/api/docs/attribution>
-- JamBase rate limits and quotas: <https://data.jambase.com/api/docs/rate-limits>
+- JamBase attribution: <https://data.jambase.com/api/docs/attribution>

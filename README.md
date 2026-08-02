@@ -2,56 +2,43 @@
 
 **The Outside Lands map, alive.**
 
-CrowdList is a map-first, OpenAI-powered live layer for the Outside Lands
-festival. It is being designed for OutsideLLMS 2026 as a public mobile website
-opened from the Outside Lands app's Experiences gallery.
+CrowdList is a map-first, OpenAI-powered live activity layer for Outside Lands,
+built for OutsideLLMS 2026. It is a public mobile site opened from the Outside
+Lands app's Experiences gallery.
 
-## Product
+## V1
 
-CrowdList starts with the official patron map and adds information that a static
-festival guide cannot provide:
+V1 ships one complete loop:
 
-- **Live crowd activity** — qualitative, time-decaying crowd comfort and energy
-  around each stage.
-- **Stage Pulse** — what is scheduled now and next, what fans are observing, and
-  how fresh and trustworthy each signal is.
-- **Festival movement** — interactive paths and stage-to-stage routes drawn over
-  the familiar map.
-- **Two-tap reports** — fast attendee contributions that visibly update the live
-  map.
-- **Optional intelligence** — compact Next Move suggestions and a secondary Ask
-  CrowdList sheet powered by OpenAI. The map remains the primary interface.
+- Open directly onto the official 2026 patron map.
+- See seven stages with seeded or live crowd-comfort and energy pulses.
+- Tap a stage for JamBase-linked `now` and `next` context.
+- Locate yourself through browser geolocation or a labeled demo location.
+- Submit a quick fan observation and watch the map update in realtime.
+- Use OpenAI to turn optional natural-language detail into a validated live
+  signal; chip-only reporting still works without AI.
 
-JamBase supplies canonical event and artist context. CrowdList imports that data
-server-side and layers live community observations on top.
+The map is the primary interface. CrowdList does not recreate the official
+lineup, schedule planner, favorites, alerts, directory, policies, or ticketing.
 
-## Product boundary
+## Later phases
 
-CrowdList extends the official Outside Lands app rather than recreating it. The
-official app remains responsible for the full lineup, schedule planning,
-official alerts, festival policies, tickets, food, amenities, and the Experiences
-catalog. CrowdList focuses on the live spatial experience.
-
-## Song recognition and setlists
-
-Crowd-verified current songs and rolling setlists remain a planned expansion,
-not a dependency for the hackathon demo. A dedicated music-recognition service
-may contribute one signal, while independent fan agreement determines whether a
-song becomes confirmed.
+V2 may add recommendations, a secondary Ask CrowdList sheet, grounds routing,
+preferences, and song recognition feeding crowd-verified setlists. These are
+deliberately excluded from the first build.
 
 ## Proposed stack
 
-- **Site:** React / Next.js + TypeScript, delivered as a mobile-first PWA
-- **Map:** MapLibre GL JS with the official map PDF as a georeferenced image
-  layer and CrowdList GeoJSON overlays
-- **Backend and realtime:** Firebase / Firestore
-- **Festival data:** JamBase REST API, imported and cached server-side
-- **AI:** OpenAI API with structured, validated outputs
+- Next.js, React, and TypeScript
+- MapLibre GL JS with the official map PDF rendered as a georeferenced image
+- Firebase / Firestore for reports and realtime stage pulses
+- JamBase REST API imported and cached server-side
+- OpenAI structured output for optional report interpretation
 
 ## Specification
 
-See the full [product and technical specification](docs/product-spec.md).
+See the one-shot [V1 product and build specification](docs/product-spec.md).
 
 ## Status
 
-Hackathon prototype — specification phase.
+Hackathon prototype — V1 specification ready for implementation.
