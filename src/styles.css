@@ -59,6 +59,24 @@ textarea:focus-visible {
   inset: 0;
 }
 
+/* Zone names sit under the stage pills, set like the printed map's meadow
+   labels but quiet enough that live activity stays the loudest thing. */
+.zone-label {
+  color: var(--zone-ink, #f7f3e3);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+  text-wrap: balance;
+  max-width: 94px;
+  opacity: 0.78;
+  pointer-events: none;
+  transform: rotate(var(--zone-angle, 0deg));
+  text-shadow: 0 1px 3px rgba(16, 41, 31, 0.45);
+}
+
 .stage-list {
   position: absolute;
   inset: 0;

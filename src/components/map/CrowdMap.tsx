@@ -1,14 +1,11 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import mapLibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import type {
-  GeoJSONSource,
-  Map as MapLibreMap,
-  Marker,
-  StyleSpecification,
-} from "maplibre-gl";
-import { FESTIVAL, MAP_COORDINATES, STAGES } from "../../data/festival";
+import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
+import { STAGES } from "../../data/festival";
+import { GROUNDS_BOUNDS, ZONE_LABELS } from "../../data/zones";
 import { CROWD_VALUE } from "../../lib/pulse";
+import { createStyle } from "../../lib/mapStyle";
 import type { Stage, StagePulse } from "../../types";
 
 maplibregl.setWorkerUrl(mapLibreWorkerUrl);
@@ -44,14 +41,35 @@ function activityGeoJson(pulses: StagePulse[]) {
   };
 }
 
-function fitFestival(map: MapLibreMap) {
-  const width = Math.max(390, map.getContainer().clientWidth);
-  const responsiveZoom = Math.min(14.25, 12.95 + Math.log2(width / 390));
-  map.easeTo({
-    center: [-122.484, 37.7678],
-    zoom: responsiveZoom,
-    duration: 700,
+// The sheet covers the lower half on a phone, so the grounds are framed into
+// the space that stays visible above it.
+function groundsPadding(container: HTMLElement) {
+  const { clientHeight, clientWidth } = container;
+  return {
+    top: 96,
+    right: 28,
+    bottom: clientWidth >= 780 ? 90 : Math.min(360, clientHeight * 0.46),
+    left: 28,
+  };
+}
+
+function fitFestival(map: MapLibreMap, duration = 700) {
+  map.fitBounds(GROUNDS_BOUNDS, {
+    padding: groundsPadding(map.getContainer()),
+    duration,
+    maxZoom: 16,
   });
+}
+
+
+function makeZoneLabel(name: string, ink: string, angle: number): HTMLDivElement {
+  const element = document.createElement("div");
+  element.className = "zone-label";
+  element.style.setProperty("--zone-ink", ink);
+  element.style.setProperty("--zone-angle", `${angle}deg`);
+  element.textContent = name;
+  element.setAttribute("aria-hidden", "true");
+  return element;
 }
 
 function makeStageMarker(
@@ -90,83 +108,15 @@ export function CrowdMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const style: StyleSpecification = {
-      version: 8,
-      sources: {
-        "patron-map": {
-          type: "image",
-          url: FESTIVAL.map.image,
-          coordinates: MAP_COORDINATES as [
-            [number, number],
-            [number, number],
-            [number, number],
-            [number, number],
-          ],
-        },
-        activity: {
-          type: "geojson",
-          data: activityGeoJson(pulses),
-        },
-      },
-      layers: [
-        {
-          id: "park-background",
-          type: "background",
-          paint: { "background-color": "#b7d650" },
-        },
-        {
-          id: "patron-map",
-          type: "raster",
-          source: "patron-map",
-          paint: { "raster-opacity": 1, "raster-fade-duration": 0 },
-        },
-        {
-          id: "activity-heat",
-          type: "heatmap",
-          source: "activity",
-          maxzoom: 18,
-          paint: {
-            "heatmap-weight": [
-              "interpolate",
-              ["linear"],
-              ["get", "weight"],
-              1,
-              0.25,
-              4,
-              1,
-            ],
-            "heatmap-intensity": 0.85,
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 13, 26, 16, 68],
-            "heatmap-opacity": 0.56,
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0,
-              "rgba(24, 195, 180, 0)",
-              0.22,
-              "rgba(41, 210, 177, 0.26)",
-              0.47,
-              "rgba(255, 211, 74, 0.43)",
-              0.7,
-              "rgba(255, 125, 54, 0.55)",
-              1,
-              "rgba(255, 53, 102, 0.7)",
-            ],
-          },
-        },
-      ],
-    };
-
-    const wideLayout = containerRef.current.clientWidth >= 780;
+    const style = createStyle(activityGeoJson(pulses));
 
     const map = new maplibregl.Map({
       container: containerRef.current,
       style,
-      center: [-122.4936, wideLayout ? 37.773 : 37.7678],
-      zoom: 14.3,
-      minZoom: 13.1,
-      maxZoom: 17.2,
+      bounds: GROUNDS_BOUNDS,
+      fitBoundsOptions: { padding: groundsPadding(containerRef.current), maxZoom: 16 },
+      minZoom: 12.8,
+      maxZoom: 17.6,
       attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
@@ -174,7 +124,20 @@ export function CrowdMap({
     });
 
     mapRef.current = map;
+    if (import.meta.env.DEV) {
+      (window as unknown as { __crowdMap?: MapLibreMap }).__crowdMap = map;
+      map.on("error", (event) => console.error("[CrowdList map]", event.error?.message));
+    }
     map.once("load", () => {
+      for (const zone of ZONE_LABELS) {
+        new maplibregl.Marker({
+          element: makeZoneLabel(zone.name, zone.ink, zone.angle),
+          anchor: "center",
+        })
+          .setLngLat(zone.center)
+          .addTo(map);
+      }
+
       for (const stage of STAGES) {
         const element = makeStageMarker(stage, (stageId) =>
           onSelectStageRef.current(stageId),

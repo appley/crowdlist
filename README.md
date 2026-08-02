@@ -32,7 +32,8 @@ are deliberately excluded from the first build.
 ## Stack
 
 - An OpenAI Sites-compatible React and TypeScript project
-- MapLibre GL JS with the official map PDF rendered as a georeferenced image
+- MapLibre GL JS drawing Golden Gate Park from OpenStreetMap geometry, colored
+  and labeled after the official patron map rather than rasterizing it
 - Convex as the external backend for reports, stage pulses, OpenAI actions, and
   demo state
 - JamBase REST API imported and cached server-side
@@ -86,5 +87,11 @@ bun run dev
 Use `?fixture=1&demo=1` for the deterministic, credential-independent demo.
 Add `?nomap=1` to force the text-only stage list that browsers without WebGL
 receive automatically.
+
+The park basemap is generated, not hand-drawn. `node scripts/build-basemap.mjs`
+rebuilds `data/ol26/ggp-base.json` from OpenStreetMap, and
+`node scripts/build-zones.mjs` rebuilds the festival zone polygons and checks
+that every stage point still sits inside the zone its sheet names. Both are
+build-time only; the app ships the generated files.
 Run `bun run check` before publishing. Server secrets belong in the Convex
 deployment; only `VITE_CONVEX_URL` is supplied to the Sites build.

@@ -51,3 +51,6 @@ firebase-debug.log*
 
 # Logs
 *.log
+
+# Cached Overpass response for scripts/build-basemap.mjs
+.cache/

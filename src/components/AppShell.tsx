@@ -170,7 +170,8 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
       />
       {mapSupported ? (
         <div className="map-attribution">
-          Official 2026 patron map · Approximate placement
+          Park data © OpenStreetMap contributors · Zones follow the official
+          2026 patron map · Approximate placement
         </div>
       ) : null}
       {reportOpen ? (
