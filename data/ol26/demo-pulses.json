@@ -1,0 +1,9 @@
+[
+  { "stageId": "lands-end", "crowd": "busy", "energy": "high", "trend": "rising", "reportCount": 18, "freshnessMinutes": 2 },
+  { "stageId": "twin-peaks", "crowd": "busy", "energy": "high", "trend": "steady", "reportCount": 14, "freshnessMinutes": 4 },
+  { "stageId": "sutro", "crowd": "comfortable", "energy": "high", "trend": "rising", "reportCount": 12, "freshnessMinutes": 1 },
+  { "stageId": "panhandle", "crowd": "easy", "energy": "medium", "trend": "falling", "reportCount": 8, "freshnessMinutes": 7 },
+  { "stageId": "soma", "crowd": "packed", "energy": "high", "trend": "rising", "reportCount": 21, "freshnessMinutes": 1 },
+  { "stageId": "dolores", "crowd": "comfortable", "energy": "high", "trend": "rising", "reportCount": 9, "freshnessMinutes": 3 },
+  { "stageId": "duboce-triangle", "crowd": "easy", "energy": "medium", "trend": "steady", "reportCount": 5, "freshnessMinutes": 8 }
+]

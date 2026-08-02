@@ -8,6 +8,9 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.next/
+.wrangler/
+next-env.d.ts
 
 # Native
 *.orig.*
@@ -26,6 +29,7 @@ android/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.tsbuildinfo
 
 # macOS
 .DS_Store
@@ -47,3 +51,6 @@ firebase-debug.log*
 
 # Logs
 *.log
+
+# Cached Overpass response for scripts/build-basemap.mjs
+.cache/
