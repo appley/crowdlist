@@ -1,6 +1,15 @@
 gitignore
 # dependencies
 node_modules/
+/.next/
+/.vinext/
+/.wrangler/
+/coverage/
+/out/
+/outputs/
+/work/
+next-env.d.ts
+*.tsbuildinfo
 
 # Expo
 .expo/

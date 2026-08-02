@@ -1,0 +1,9 @@
+{
+  "name": "CrowdList",
+  "short_name": "CrowdList",
+  "description": "Live crowd density and crowd-verified setlists for music festivals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f3ed",
+  "theme_color": "#161616"
+}

@@ -52,7 +52,7 @@ answer reliably, let code answer.
 
 ### Rule 6 — Token Budgets Are Not Advisory
 
-The per-task budget is 4,000 tokens. The per-session budget is 30,000 tokens. If
+The per-task budget is 400,000 tokens. The per-session budget is 30,000 tokens. If
 approaching either budget, summarize the current state and start fresh. Surface
 any breach; never silently overrun a budget.
 
