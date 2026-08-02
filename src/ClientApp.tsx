@@ -2,7 +2,8 @@ import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConnectedApp, FixtureApp } from "./App";
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim();
+const convexUrl =
+  import.meta.env.VITE_CONVEX_URL?.trim() || "https://agreeable-crane-771.convex.cloud";
 const client = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 class DataBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
