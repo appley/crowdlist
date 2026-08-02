@@ -31,7 +31,7 @@ deliberately excluded from the first build.
 
 - Next.js, React, and TypeScript
 - MapLibre GL JS with the official map PDF rendered as a georeferenced image
-- Firebase / Firestore for reports and realtime stage pulses
+- Convex for reports, reactive stage pulses, OpenAI actions, and demo state
 - JamBase REST API imported and cached server-side
 - OpenAI structured output for optional report interpretation
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Product | CrowdList |
-| Version | 2.0 — streamlined hackathon scope |
+| Version | 2.1 — streamlined hackathon scope |
 | Date | August 2, 2026 |
 | Event | OutsideLLMS 2026 / Outside Lands 2026 |
 | Delivery | Public mobile website opened from the OutsideLLMS Experiences gallery |
@@ -70,8 +70,8 @@ guidance. When those are needed, direct the visitor back to Outside Lands.
 | Schedule context | JamBase-linked `now` and `next` labels only |
 | Stage Pulse | Crowd comfort, energy, trend, freshness, and recent report count |
 | Live reports | Quick structured chips plus optional short natural-language detail |
-| OpenAI | Parse optional report text into a validated, structured live signal |
-| Realtime | A submitted report updates the selected stage and map activity layer |
+| OpenAI | Convert optional report text into crowd level, energy, trend, and a one-line map summary |
+| Realtime | Convex pushes a submitted report's new stage pulse to every open map |
 | Demo mode | Seeded pulses, schedule snippets, and repeatable state transitions |
 | Attribution | Visible JamBase attribution wherever its data is displayed |
 
@@ -155,23 +155,15 @@ unavailable. When text is supplied, the server asks OpenAI for a structured
 interpretation, validates it, and uses only supported fields. The original text
 may be shown as a recent observation after basic moderation.
 
-### 4.5 Location flow
+### 4.5 User location
 
-Location is useful for orientation, not required for crowd inference.
+After the visitor taps the location control, use the browser Geolocation API to
+place a `You are here` puck. For an off-site demo, a query flag places the puck
+at one fixed coordinate and labels it `Demo location`.
 
-- Production uses the browser Geolocation API after an explicit user action.
-- Demo mode uses a fixed coordinate inside the grounds and labels it `Demo
-  location`.
-- A `LocationProvider` interface isolates the two implementations.
-- Denial or failure leaves the rest of the map fully usable.
-- V1 does not upload, store, publish, aggregate, or infer crowd density from the
-  user's coordinates.
-- No background location, breadcrumb trail, individual attendee dots, or friend
-  tracking is allowed.
-
-This resolves the demo constraint without pretending real crowd-location data
-exists: build actual browser positioning, build a fixed demo provider, and use
-fan reports plus fixtures for activity.
+Location denial must not block the map. Coordinates remain in the browser and
+are never used to calculate crowd activity; V1 crowd signals come from reports
+and seeded demo data.
 
 ### 4.6 Compact mobile layout
 
@@ -229,8 +221,8 @@ visually compatible.
 
 Outside Lands publicly provides the patron-map PDF, stage, lineup, schedule, and
 information pages. No documented public developer API, official GeoJSON,
-routing graph, or live crowd feed has been identified. V1 must not depend on
-undocumented app endpoints.
+routing graph, or live crowd feed has been identified. JamBase does not provide
+festival-stage geometry. V1 must not depend on undocumented app endpoints.
 
 Use the approved 2026 map PDF:
 
@@ -239,8 +231,9 @@ Use the approved 2026 map PDF:
 ### 6.2 Renderer and layers
 
 Use **MapLibre GL JS**. Rasterize the PDF to a high-resolution WebP and add it as
-a georeferenced image source. Keep every interactive item in separate CrowdList
-GeoJSON; the PDF is the canvas, not the data model.
+a georeferenced image source. The team will create one small CrowdList GeoJSON
+file containing the seven stage points; the PDF is the canvas, not the data
+model.
 
 ```text
 4  Interaction     selected stage, location puck, report animation
@@ -256,9 +249,10 @@ festival-wide polygon authoring.
 
 1. Render the PDF at enough resolution for phone zoom and crop to the map art.
 2. Encode it as a size-conscious WebP.
-3. Choose four WGS84 corner coordinates covering the illustrated grounds.
-4. Place and visually calibrate the seven official stage points in
-   `data/ol26/stages.geojson`.
+3. Choose four WGS84 corner coordinates covering the illustrated grounds using
+   recognizable Golden Gate Park landmarks.
+4. Manually place the seven stage points over their labeled positions on the
+   PDF, then save those coordinates in `data/ol26/stages.geojson`.
 5. Confirm the fixed demo coordinate appears on a plausible attendee path.
 6. Store image corners and default camera values in festival configuration, not
    inside React components.
@@ -283,10 +277,11 @@ become a second lineup product.
 
 ### 7.1 V1 import
 
-1. Call JamBase only from a server-side import script or protected route.
+1. Call JamBase only from a protected Convex action or local import script.
 2. Fetch the Outside Lands event and related artist/venue data available under
    the sponsor credentials.
-3. Normalize relevant records into a small checked-in or database snapshot.
+3. Normalize relevant records into Convex, with a checked-in demo snapshot as
+   fallback.
 4. Crosswalk performances to the seven CrowdList stage IDs.
 5. Expose only the current and next performance for each stage to the client.
 6. Display required JamBase attribution and links.
@@ -371,7 +366,7 @@ counts of people, or safety assurances.
 
 1. Validate and store the report.
 2. Recompute or transactionally update the stage pulse.
-3. Publish the updated pulse through the realtime store.
+3. Let the Convex reactive query push the updated pulse to every open map.
 4. Update the marker, heat field, sheet, freshness, and report count.
 5. Play one short confirmation animation.
 
@@ -459,19 +454,8 @@ interface ParsedReport {
 }
 ```
 
-Location stays client-side:
-
-```ts
-interface LocationFix {
-  coordinates: [longitude: number, latitude: number];
-  accuracyMeters?: number;
-  source: "browser" | "demo";
-}
-
-interface LocationProvider {
-  getCurrentPosition(): Promise<LocationFix>;
-}
-```
+Location is intentionally absent from the server data model. The browser keeps
+only the current position needed to draw the local puck.
 
 ## 11. Technical architecture
 
@@ -479,9 +463,10 @@ interface LocationProvider {
 
 - **Web:** Next.js, React, and TypeScript.
 - **Map:** MapLibre GL JS.
-- **Realtime and persistence:** Firebase / Firestore.
-- **Festival context:** server-side JamBase import and normalized snapshot.
-- **AI:** server-side OpenAI API with strict structured output.
+- **Backend and realtime:** Convex queries, mutations, actions, and scheduler.
+- **Festival context:** JamBase import through a protected Convex action, with a
+  checked-in fallback snapshot.
+- **AI:** OpenAI strict structured output called from an internal Convex action.
 - **Hosting:** any public HTTPS host compatible with the OutsideLLMS gallery
   webview.
 
@@ -493,61 +478,74 @@ flowchart LR
     W --> M[MapLibre map]
     M --> S[Stage Pulse sheet]
     S --> R[Report composer]
-    R --> A[Report API]
-    A --> O[OpenAI parser when text exists]
-    A --> F[Firestore reports and pulses]
-    F --> M
-    J[JamBase import] --> C[Normalized schedule snapshot]
+    R --> U[Convex submitReport mutation]
+    U --> D[Reports and stage pulses]
+    D --> Q[Reactive stage-pulse query]
+    Q --> M
+    U -. optional text .-> O[Internal OpenAI action]
+    O --> D
+    J[JamBase Convex action] --> C[Cached performance snippets]
     C --> S
 ```
 
-Secrets, OpenAI calls, JamBase imports, input validation, rate limiting, and
-persistence belong on the server. The client receives only public map, pulse,
-and now/next data.
+Secrets, OpenAI calls, JamBase imports, validation, rate limiting, and
+persistence belong in Convex functions. The client receives only public map,
+pulse, and now/next data.
 
-### 11.3 Minimal server interfaces
+### 11.3 Minimal Convex functions
 
-`GET /api/bootstrap`
+`bootstrap.get`
 
 Returns festival configuration, stages, current/next performance snippets,
-initial pulses, data mode, and attribution. This may be statically cached.
+initial pulses, data mode, and attribution.
 
-`POST /api/reports`
+`pulses.list`
 
-Validates quick-chip values and text, invokes parsing only when text exists,
-stores the report, updates the pulse, and returns the accepted report and pulse.
+A reactive query subscribed to by the map and open Stage Pulse sheet.
 
-`POST /api/reports/parse`
+`reports.submit`
 
-An internal or separately rate-limited endpoint if parsing is split from report
-creation. It must not be necessary for chip-only reports.
+Validates the chips, writes the report, updates the stage pulse atomically, and
+schedules text interpretation only when optional text exists.
 
-`POST /api/dev/reset-demo`
+`openai.parseReport` and `reports.applyParsedReport`
 
-Development-only. Restores deterministic seeded pulses. It must be disabled or
-protected in production.
+An internal action calls OpenAI; an internal mutation validates and stores the
+result, triggering a second reactive update. Chip-only reporting never waits for
+this action.
 
-The JamBase import may be a script rather than a public HTTP endpoint.
+`jambase.importFestival`
+
+A protected action imports and caches the available JamBase event and artist
+context. It is not callable from the public client.
+
+`demo.reset`
+
+An internal mutation restores deterministic seeded pulses. Invoke it from the
+Convex dashboard or a development-only control, never the public production UI.
 
 ### 11.4 Suggested project shape
 
 ```text
 app/
   page.tsx
-  api/bootstrap/route.ts
-  api/reports/route.ts
 components/
   map/CrowdMap.tsx
   map/StageLayer.tsx
   map/ActivityLayer.tsx
   stage/StagePulseSheet.tsx
   reports/ReportComposer.tsx
+convex/
+  schema.ts
+  bootstrap.ts
+  pulses.ts
+  reports.ts
+  openai.ts
+  jambase.ts
+  demo.ts
 lib/
-  location/browser.ts
-  location/demo.ts
-  openai/parse-report.ts
+  location.ts
   pulse/calculate.ts
-  jambase/import.ts
   validation.ts
 data/ol26/
   festival.json
@@ -565,7 +563,8 @@ festival CMS, recommendation engine, routing engine, or event bus in V1.
 
 ### Reliability
 
-- Map and fixture data load without JamBase, OpenAI, or Firestore credentials.
+- Map and fixture data load without JamBase or OpenAI credentials; local
+  development needs only a Convex deployment URL after initial setup.
 - Chip-only reports remain valid when OpenAI is unavailable.
 - JamBase data is read from a cached snapshot at runtime.
 - Network failures preserve the last visible map and show a compact retry state.
@@ -601,23 +600,24 @@ scope.
 1. **Map foundation**
    - Create the mobile shell and full-screen MapLibre view.
    - Process and georeference the official map asset.
-   - Load seven stages from GeoJSON.
+   - Author and load the seven-point stage GeoJSON from the official PDF.
 2. **Fixture-backed product loop**
    - Load now/next snippets and seeded pulses.
    - Render stage activity states.
    - Implement the Stage Pulse sheet.
 3. **Location**
-   - Add browser and demo `LocationProvider` implementations.
-   - Add explicit location control, denial state, and puck.
+   - Add the browser location control, denial state, and local puck.
+   - Add one labeled fixed coordinate behind the off-site demo flag.
 4. **Reporting and realtime**
-   - Build the quick report composer and validation.
-   - Persist reports and update pulses.
-   - Subscribe the map and sheet to pulse changes.
+   - Define the Convex schema, pulse query, and report mutation.
+   - Build the quick report composer and server-side validation.
+   - Subscribe the map and sheet to the reactive pulse query.
 5. **OpenAI report interpretation**
-   - Add the strict parser for optional text.
+   - Schedule an internal action that parses optional text into crowd level,
+     energy, trend, and a one-line summary.
    - Preserve chip-only fallback and safety handling.
 6. **JamBase sponsor integration**
-   - Import and normalize the available event/artist data.
+   - Import and normalize available event/artist data through a Convex action.
    - Crosswalk now/next snippets and add attribution.
 7. **Demo and polish**
    - Tune activity motion and reduced-motion mode.
@@ -630,7 +630,8 @@ V1 is demo-ready only when all of these are true:
 
 - [ ] A fresh visitor lands directly on a useful mobile map without login.
 - [ ] The approved 2026 Outside Lands map is visible and readable.
-- [ ] All seven stage hotspots are loaded from GeoJSON and are tappable.
+- [ ] All seven hotspots load from the team-authored
+      `data/ol26/stages.geojson` and are tappable.
 - [ ] At least three seeded stage activity states are visually distinct.
 - [ ] A stage sheet shows only now/next, pulse, freshness, reports, and attribution.
 - [ ] Location appears after a user action in browser mode.
@@ -655,8 +656,8 @@ V1 is demo-ready only when all of these are true:
 
 - Unit-test report validation and pulse weighting at age boundaries.
 - Unit-test OpenAI output validation and chip-only fallback.
-- Unit-test browser/demo location-provider selection.
-- Integration-test `POST /api/reports` through pulse update.
+- Unit-test browser location, denial, and demo-flag behavior.
+- Integration-test the Convex report mutation through its reactive pulse update.
 - End-to-end test: open map → tap Sutro → report → observe changed pulse.
 - Test small-screen layout, location denial, offline fixture load, and reduced
   motion manually.
@@ -684,7 +685,7 @@ the team confirms otherwise.
 | --- | --- |
 | Does JamBase expose stage-level Outside Lands times? | Use fixture assignments with JamBase artist/event IDs |
 | Is an organizer vector map available? | Use the approved PDF-derived WebP and team-authored stage GeoJSON |
-| Which realtime credentials are ready? | Run fixture/in-memory mode locally, then connect Firestore |
+| Which realtime backend should V1 use? | Use Convex for reports, pulses, external-service actions, and demo reset |
 | What are the gallery webview restrictions? | Build responsive HTTPS with no install, popup, or account dependency |
 | Are public free-text observations safe for the demo? | Show only predefined/seeded summaries; keep new raw text private if moderation is incomplete |
 
@@ -707,3 +708,6 @@ required for this specification.
 - JamBase API getting started: <https://data.jambase.com/api/docs/getting-started>
 - JamBase API reference: <https://data.jambase.com/api/reference>
 - JamBase attribution: <https://data.jambase.com/api/docs/attribution>
+- Convex realtime: <https://docs.convex.dev/realtime>
+- Convex actions: <https://docs.convex.dev/functions/actions>
+- Convex scheduled functions: <https://docs.convex.dev/scheduling/scheduled-functions>
