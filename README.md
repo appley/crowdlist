@@ -3,8 +3,8 @@
 **The Outside Lands map, alive.**
 
 CrowdList is a map-first, OpenAI-powered live activity layer for Outside Lands,
-built for OutsideLLMS 2026. It is a public mobile site opened from the Outside
-Lands app's Experiences gallery.
+built for OutsideLLMS 2026. It is published as an **OpenAI Site** and opened from
+the Outside Lands app's Experiences gallery.
 
 ## V1
 
@@ -29,11 +29,15 @@ deliberately excluded from the first build.
 
 ## Proposed stack
 
-- Next.js, React, and TypeScript
+- An OpenAI Sites-compatible React and TypeScript project
 - MapLibre GL JS with the official map PDF rendered as a georeferenced image
-- Convex for reports, reactive stage pulses, OpenAI actions, and demo state
+- Convex as the external backend for reports, stage pulses, OpenAI actions, and
+  demo state
 - JamBase REST API imported and cached server-side
 - OpenAI structured output for optional report interpretation
+
+OpenAI Sites is the mandatory hosting and submission surface. Convex is an
+external service, not a replacement deployment target.
 
 ## Specification
 

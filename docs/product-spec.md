@@ -3,15 +3,17 @@
 | Field | Value |
 | --- | --- |
 | Product | CrowdList |
-| Version | 2.1 — streamlined hackathon scope |
+| Version | 2.2 — OpenAI Sites deployment contract |
 | Date | August 2, 2026 |
 | Event | OutsideLLMS 2026 / Outside Lands 2026 |
-| Delivery | Public mobile website opened from the OutsideLLMS Experiences gallery |
+| Delivery | Public OpenAI Site opened from the OutsideLLMS Experiences gallery |
 | V1 objective | Ship one complete, reliable live-map loop |
 
 ## 1. Authoritative build directive
 
-Build **V1 only**.
+Build **V1 only**, and publish it through **OpenAI Sites**. A deployment on
+Vercel, Netlify, Convex, or another generic host does not satisfy the submission
+contract.
 
 V1 is complete when a visitor can open CrowdList, immediately see the official
 Outside Lands map brought to life, locate themselves, tap a stage, understand
@@ -26,6 +28,10 @@ festival abstractions during the first pass.
 When external data or venue connectivity is unavailable, use the checked-in
 Outside Lands fixture and deterministic demo state described here. Missing
 credentials must not prevent the core map from running locally.
+
+OpenAI Sites compatibility is a first-step gate, not final-day deployment work.
+Create or import the project through Sites, save a reviewable version, and prove
+the map and backend transport before implementing the remaining product loop.
 
 ### V1 in one sentence
 
@@ -65,13 +71,14 @@ guidance. When those are needed, direct the visitor back to Outside Lands.
 | Capability | V1 behavior |
 | --- | --- |
 | Map shell | Full-screen mobile map with the official 2026 patron map as its visual base |
+| Submission surface | Public production deployment created and managed through OpenAI Sites |
 | Stage layer | Seven tappable stage hotspots with distinct live states |
 | User location | Browser location puck after an explicit tap; deterministic demo location fallback |
 | Schedule context | JamBase-linked `now` and `next` labels only |
 | Stage Pulse | Crowd comfort, energy, trend, freshness, and recent report count |
 | Live reports | Quick structured chips plus optional short natural-language detail |
 | OpenAI | Convert optional report text into crowd level, energy, trend, and a one-line map summary |
-| Realtime | Convex pushes a submitted report's new stage pulse to every open map |
+| Realtime | Convex propagates a submitted report's new stage pulse to every open map |
 | Demo mode | Seeded pulses, schedule snippets, and repeatable state transitions |
 | Attribution | Visible JamBase attribution wherever its data is displayed |
 
@@ -101,8 +108,8 @@ source or independent fan reports; it must never silently become canonical.
 ### 4.1 Entry state
 
 The Outside Lands app opens its `Experiences` destination, the user selects
-CrowdList, and the public site loads directly into the map. There is no landing
-page, account wall, preference quiz, or chat greeting.
+CrowdList, and the public OpenAI Sites URL loads directly into the map. There is
+no landing page, account wall, preference quiz, or chat greeting.
 
 On first render:
 
@@ -366,7 +373,8 @@ counts of people, or safety assurances.
 
 1. Validate and store the report.
 2. Recompute or transactionally update the stage pulse.
-3. Let the Convex reactive query push the updated pulse to every open map.
+3. Deliver the updated pulse through the selected Convex WebSocket or polling
+   transport.
 4. Update the marker, heat field, sheet, freshness, and report count.
 5. Play one short confirmation animation.
 
@@ -459,22 +467,50 @@ only the current position needed to draw the local puck.
 
 ## 11. Technical architecture
 
-### 11.1 Recommended stack
+### 11.1 Mandatory OpenAI Sites runtime
 
-- **Web:** Next.js, React, and TypeScript.
+OpenAI Sites is the host, deployment workflow, and public submission URL. Start
+from the Sites-recommended project shape or import the local project only after
+Sites confirms it can build compatible artifacts. Do not depend on a Next.js
+server runtime, a separate frontend host, or CLI-based Sites deployment.
+
+Sites manages the project linkage in `.openai/hosting.json`. Do not place secrets
+in that file. Save a version for review before deploying it, then publish the
+approved version from ChatGPT Sites.
+
+Convex remains a public external backend. OpenAI and JamBase secrets live in the
+Convex deployment, not in browser code or the Sites repository. The Site needs
+only the public Convex deployment URL.
+
+Before the product build, deploy a minimal compatibility probe that verifies:
+
+1. MapLibre renders the raster and one GeoJSON marker.
+2. Browser geolocation can be requested from the Sites URL.
+3. The Site can read and mutate Convex over HTTPS.
+4. A Convex WebSocket subscription reaches two open Site clients.
+
+If only the WebSocket check fails, retain Convex and use one-second HTTPS polling
+for stage pulses. If external Convex access itself fails, replace Convex with a
+Sites-native D1 binding before continuing. Do not implement or maintain two
+backends. OpenAI Sites is never the fallback variable. The remainder of this
+specification assumes the Convex probe passes over at least HTTPS.
+
+### 11.2 Recommended stack
+
+- **Web:** OpenAI Sites-compatible React and TypeScript project.
 - **Map:** MapLibre GL JS.
-- **Backend and realtime:** Convex queries, mutations, actions, and scheduler.
+- **Backend and realtime:** External Convex queries, mutations, actions, and
+  scheduler; one-second HTTPS polling only if Sites blocks WebSockets.
 - **Festival context:** JamBase import through a protected Convex action, with a
   checked-in fallback snapshot.
 - **AI:** OpenAI strict structured output called from an internal Convex action.
-- **Hosting:** any public HTTPS host compatible with the OutsideLLMS gallery
-  webview.
+- **Hosting:** OpenAI Sites public production deployment only.
 
-### 11.2 Request flow
+### 11.3 Request flow
 
 ```mermaid
 flowchart LR
-    G[Outside Lands app / Experiences] --> W[CrowdList web app]
+    G[Outside Lands app / Experiences] --> W[CrowdList OpenAI Site]
     W --> M[MapLibre map]
     M --> S[Stage Pulse sheet]
     S --> R[Report composer]
@@ -492,7 +528,7 @@ Secrets, OpenAI calls, JamBase imports, validation, rate limiting, and
 persistence belong in Convex functions. The client receives only public map,
 pulse, and now/next data.
 
-### 11.3 Minimal Convex functions
+### 11.4 Minimal Convex functions
 
 `bootstrap.get`
 
@@ -524,17 +560,23 @@ context. It is not callable from the public client.
 An internal mutation restores deterministic seeded pulses. Invoke it from the
 Convex dashboard or a development-only control, never the public production UI.
 
-### 11.4 Suggested project shape
+### 11.5 Suggested project shape
 
 ```text
-app/
-  page.tsx
-components/
-  map/CrowdMap.tsx
-  map/StageLayer.tsx
-  map/ActivityLayer.tsx
-  stage/StagePulseSheet.tsx
-  reports/ReportComposer.tsx
+.openai/
+  hosting.json
+src/
+  App.tsx
+  components/
+    map/CrowdMap.tsx
+    map/StageLayer.tsx
+    map/ActivityLayer.tsx
+    stage/StagePulseSheet.tsx
+    reports/ReportComposer.tsx
+  lib/
+    location.ts
+    pulse/calculate.ts
+    validation.ts
 convex/
   schema.ts
   bootstrap.ts
@@ -543,10 +585,6 @@ convex/
   openai.ts
   jambase.ts
   demo.ts
-lib/
-  location.ts
-  pulse/calculate.ts
-  validation.ts
 data/ol26/
   festival.json
   stages.geojson
@@ -556,8 +594,9 @@ public/maps/
   ol26-patron-map.webp
 ```
 
-Keep this organization small. Do not introduce a plugin system, generalized
-festival CMS, recommendation engine, routing engine, or event bus in V1.
+Adapt filenames to the starter Sites selects, but keep this organization small.
+Do not introduce a plugin system, generalized festival CMS, recommendation
+engine, routing engine, or event bus in V1.
 
 ## 12. Reliability, privacy, and accessibility
 
@@ -565,6 +604,8 @@ festival CMS, recommendation engine, routing engine, or event bus in V1.
 
 - Map and fixture data load without JamBase or OpenAI credentials; local
   development needs only a Convex deployment URL after initial setup.
+- The OpenAI Site can load checked-in map and pulse fixtures when Convex is
+  unavailable.
 - Chip-only reports remain valid when OpenAI is unavailable.
 - JamBase data is read from a cached snapshot at runtime.
 - Network failures preserve the last visible map and show a compact retry state.
@@ -597,31 +638,41 @@ festival CMS, recommendation engine, routing engine, or event bus in V1.
 Each step should leave the project runnable. Finish a step before expanding
 scope.
 
-1. **Map foundation**
+1. **OpenAI Sites compatibility gate**
+   - Confirm the hackathon account can create a Site and publish it publicly.
+   - Create or import the project through Sites and save a reviewable version.
+   - Deploy the one-marker MapLibre, geolocation, and Convex transport probe.
+   - Keep WebSockets if they pass; otherwise select HTTPS polling.
+   - If Convex itself is unreachable, select Sites-native D1 and stop building
+     the Convex path.
+2. **Map foundation**
    - Create the mobile shell and full-screen MapLibre view.
    - Process and georeference the official map asset.
    - Author and load the seven-point stage GeoJSON from the official PDF.
-2. **Fixture-backed product loop**
+3. **Fixture-backed product loop**
    - Load now/next snippets and seeded pulses.
    - Render stage activity states.
    - Implement the Stage Pulse sheet.
-3. **Location**
+4. **Location**
    - Add the browser location control, denial state, and local puck.
    - Add one labeled fixed coordinate behind the off-site demo flag.
-4. **Reporting and realtime**
+5. **Reporting and realtime**
    - Define the Convex schema, pulse query, and report mutation.
    - Build the quick report composer and server-side validation.
-   - Subscribe the map and sheet to the reactive pulse query.
-5. **OpenAI report interpretation**
+   - Connect the map and sheet through the transport selected by the Sites
+     compatibility probe.
+6. **OpenAI report interpretation**
    - Schedule an internal action that parses optional text into crowd level,
      energy, trend, and a one-line summary.
    - Preserve chip-only fallback and safety handling.
-6. **JamBase sponsor integration**
+7. **JamBase sponsor integration**
    - Import and normalize available event/artist data through a Convex action.
    - Crosswalk now/next snippets and add attribution.
-7. **Demo and polish**
+8. **Demo and OpenAI Sites deployment**
    - Tune activity motion and reduced-motion mode.
    - Add deterministic reset, degraded states, and webview checks.
+   - Save the final Sites version, review it, and deploy its public production
+     URL.
    - Run the acceptance checklist and stop V1 scope.
 
 ## 14. V1 acceptance criteria
@@ -629,6 +680,10 @@ scope.
 V1 is demo-ready only when all of these are true:
 
 - [ ] A fresh visitor lands directly on a useful mobile map without login.
+- [ ] The submitted URL is a public production deployment managed through
+      OpenAI Sites.
+- [ ] The hackathon account and workspace permit public Sites publishing.
+- [ ] `.openai/hosting.json` links the local project without containing secrets.
 - [ ] The approved 2026 Outside Lands map is visible and readable.
 - [ ] All seven hotspots load from the team-authored
       `data/ol26/stages.geojson` and are tappable.
@@ -642,10 +697,13 @@ V1 is demo-ready only when all of these are true:
 - [ ] A report succeeds without OpenAI when parsing is unavailable.
 - [ ] The submitted report changes the selected stage on the map within two
       seconds under normal demo conditions.
+- [ ] Two clients opened on the deployed OpenAI Site observe the same stage
+      update through the selected Convex transport.
 - [ ] No raw or historical user location is sent to the server.
 - [ ] JamBase-backed data is cached and visibly attributed.
 - [ ] Fixture mode works with no sponsor or AI credentials.
-- [ ] The experience works in the expected in-app webview and a mobile browser.
+- [ ] The OpenAI Sites URL works in the OutsideLLMS/Outside Lands in-app webview
+      and a mobile browser.
 - [ ] Reduced motion, textual state labels, focus management, and touch target
       requirements pass a manual check.
 - [ ] No V2 navigation, placeholders, or incomplete controls appear.
@@ -657,15 +715,16 @@ V1 is demo-ready only when all of these are true:
 - Unit-test report validation and pulse weighting at age boundaries.
 - Unit-test OpenAI output validation and chip-only fallback.
 - Unit-test browser location, denial, and demo-flag behavior.
-- Integration-test the Convex report mutation through its reactive pulse update.
+- Integration-test the Convex report mutation through the selected Sites data
+  transport.
 - End-to-end test: open map → tap Sutro → report → observe changed pulse.
 - Test small-screen layout, location denial, offline fixture load, and reduced
   motion manually.
 
 ### 90-second demo script
 
-1. Open CrowdList from the Experiences path and point out that it lands on the
-   official map, not a chat screen.
+1. Open the public OpenAI Site from the Experiences path and point out that it
+   lands on the official map, not a chat screen.
 2. Show the seven stages pulsing with different fresh activity states.
 3. Tap the location button and show the labeled demo puck.
 4. Open Sutro and show JamBase-linked now/next context plus fresh Stage Pulse.
@@ -686,7 +745,8 @@ the team confirms otherwise.
 | Does JamBase expose stage-level Outside Lands times? | Use fixture assignments with JamBase artist/event IDs |
 | Is an organizer vector map available? | Use the approved PDF-derived WebP and team-authored stage GeoJSON |
 | Which realtime backend should V1 use? | Use Convex for reports, pulses, external-service actions, and demo reset |
-| What are the gallery webview restrictions? | Build responsive HTTPS with no install, popup, or account dependency |
+| Where is CrowdList hosted? | OpenAI Sites only; no alternate production host satisfies the submission |
+| What if Sites blocks Convex WebSockets? | Keep Convex and use one-second HTTPS polling; use D1 only if all external Convex access fails |
 | Are public free-text observations safe for the demo? | Show only predefined/seeded summaries; keep new raw text private if moderation is incomplete |
 
 ## 17. Explicit stop line
@@ -700,6 +760,7 @@ required for this specification.
 
 - OutsideLLMS 2026: <https://outsidellms.com/>
 - OutsideLLMS event listing: <https://luma.com/OutsideLLMS>
+- OpenAI Sites: <https://learn.chatgpt.com/docs/sites.md>
 - Official Outside Lands information: <https://sfoutsidelands.com/info/>
 - Official 2026 patron map PDF: <https://sfoutsidelands.com/assets/maps/ol26-patron-map_73026.pdf>
 - Official Outside Lands stages: <https://sfoutsidelands.com/stages/>
