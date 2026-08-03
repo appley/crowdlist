@@ -35,13 +35,17 @@ export function interpolateActivityPoints(
   if (current.points.length !== next.points.length) return activityPointsFromFrame(current);
   return current.points.map(([longitude, latitude, weight, contributors], index) => {
     const [nextLongitude, nextLatitude, nextWeight, nextContributors] = next.points[index];
+    const interpolatedContributors = Math.round(
+      contributors + (nextContributors - contributors) * amount,
+    );
+    const safeContributors = interpolatedContributors >= 5 ? interpolatedContributors : 0;
     return {
       coordinates: [
         longitude + (nextLongitude - longitude) * amount,
         latitude + (nextLatitude - latitude) * amount,
       ],
-      weight: weight + (nextWeight - weight) * amount,
-      contributors: Math.round(contributors + (nextContributors - contributors) * amount),
+      weight: safeContributors ? weight + (nextWeight - weight) * amount : 0,
+      contributors: safeContributors,
     };
   });
 }

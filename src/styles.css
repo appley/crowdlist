@@ -712,9 +712,44 @@ textarea:focus-visible {
 }
 
 .song-recognition__action {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 9px;
+  gap: 4px 10px;
+  padding: 10px;
+  border: 1px solid rgba(216, 240, 93, 0.3);
+  border-radius: 13px;
+  color: var(--paper);
+  background: var(--forest);
+}
+
+.song-recognition__intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1px 7px;
+  min-width: 0;
+}
+
+.song-recognition__intro svg {
+  grid-row: 1 / span 2;
+  color: var(--lime);
+}
+
+.song-recognition__intro span {
+  color: var(--lime);
+  font-family: "DM Mono", monospace;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.song-recognition__intro strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .song-recognition__button {
@@ -728,14 +763,14 @@ textarea:focus-visible {
   border: 1px solid rgba(16, 41, 31, 0.2);
   border-radius: 10px;
   color: var(--forest);
-  background: #f0eadf;
+  background: var(--lime);
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .song-recognition__button:hover {
-  background: #e8e1d4;
+  background: #e6f97d;
 }
 
 .song-recognition__button:focus-visible {
@@ -749,8 +784,9 @@ textarea:focus-visible {
 }
 
 .song-recognition__action > p {
+  grid-column: 1 / -1;
   margin: 0;
-  color: #6d7972;
+  color: rgba(255, 253, 243, 0.58);
   font-size: 8px;
   line-height: 1.25;
 }
@@ -840,6 +876,82 @@ textarea:focus-visible {
   border-radius: 8px;
   color: white;
   background: #6545c4;
+}
+
+.song-recognition__now {
+  overflow: hidden;
+  border: 1px solid rgba(216, 240, 93, 0.3);
+  border-radius: 13px;
+  color: var(--paper);
+  background: var(--forest);
+  box-shadow: 0 9px 24px rgba(16, 41, 31, 0.16);
+}
+
+.song-recognition__now .song-recognition__result {
+  border-radius: 0;
+  color: var(--lime);
+  background: transparent;
+}
+
+.song-recognition__now .song-recognition__result strong {
+  color: var(--paper);
+  font-size: 13px;
+}
+
+.song-recognition__now .song-recognition__result p {
+  color: rgba(255, 253, 243, 0.68);
+}
+
+.song-recognition__consensus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 8px 9px;
+  border-top: 1px solid rgba(255, 253, 243, 0.12);
+}
+
+.song-recognition__consensus > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.song-recognition__consensus > small {
+  color: rgba(255, 253, 243, 0.58);
+  font-size: 7px;
+}
+
+.song-recognition__consensus > button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--forest);
+  background: var(--lime);
+  font-size: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.song-recognition__consensus > button:disabled {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.song-recognition__confirmation-error {
+  margin: 0;
+  padding: 0 9px 8px;
+  color: #ffb6c8;
+  font-size: 8px;
+  font-weight: 750;
 }
 
 .song-recognition__message {

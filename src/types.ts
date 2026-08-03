@@ -46,9 +46,15 @@ export interface ActivityPortrait {
   meta: {
     source: "simulated";
     label: string;
+    engine: string;
+    sourceCommit: string;
     seed: number;
+    agentCount: number;
     frameDurationMs: number;
     kAnonymity: number;
+    h3Resolution: number;
+    graphNodes: number;
+    graphEdges: number;
     generatedAt: string;
   };
   frames: ActivityFrame[];
@@ -110,11 +116,30 @@ export interface SongRecognitionInput {
   mimeType: string;
 }
 
+export interface SongSignal {
+  stageId: string;
+  title: string;
+  artists: string[];
+  confirmations: number;
+  confirmed: boolean;
+  updatedAt: number;
+}
+
+export interface SongConfirmationInput {
+  stageId: string;
+  anonId: string;
+  title: string;
+  artists: string[];
+  acrid?: string;
+}
+
 export interface FestivalDataSource {
   pulses: StagePulse[];
   presenceCells?: PresenceCell[];
+  songSignals?: SongSignal[];
   status: "connecting" | "live" | "fixture" | "degraded";
   submitReport: (input: ReportInput) => Promise<void>;
   submitPresence?: (input: PresenceInput) => Promise<void>;
   recognizeSong?: (input: SongRecognitionInput) => Promise<SongRecognitionResponse>;
+  confirmSong?: (input: SongConfirmationInput) => Promise<void>;
 }

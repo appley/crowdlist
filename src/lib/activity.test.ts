@@ -6,7 +6,11 @@ import { activityPointsFromFrame, interpolateActivityPoints, mergeActivityPulses
 describe("activity portrait", () => {
   it("ships a compact deterministic loop for every official stage", () => {
     expect(ACTIVITY_PORTRAIT.meta.source).toBe("simulated");
+    expect(ACTIVITY_PORTRAIT.meta.engine).toBe("krish-dev-crowdsim-agent-h3");
+    expect(ACTIVITY_PORTRAIT.meta.sourceCommit).toBe("16dfaae");
+    expect(ACTIVITY_PORTRAIT.meta.agentCount).toBe(8_000);
     expect(ACTIVITY_PORTRAIT.meta.kAnonymity).toBe(5);
+    expect(ACTIVITY_PORTRAIT.meta.h3Resolution).toBe(11);
     expect(ACTIVITY_PORTRAIT.frames).toHaveLength(24);
 
     const expectedStageIds = STAGES.map((stage) => stage.id).sort();
@@ -14,7 +18,7 @@ describe("activity portrait", () => {
       expect(frame.stages.map((stage) => stage.stageId).sort()).toEqual(expectedStageIds);
       expect(frame.points.length).toBeGreaterThan(70);
       expect(frame.points.every(([, , weight, contributors]) =>
-        weight > 0 && weight <= 1.25 && contributors >= 5
+        (weight === 0 && contributors === 0) || (weight > 0 && weight <= 1.25 && contributors >= 5)
       )).toBe(true);
     }
   });
@@ -40,17 +44,22 @@ describe("activity portrait", () => {
   it("turns compact tuples into MapLibre-ready points", () => {
     const points = activityPointsFromFrame(ACTIVITY_PORTRAIT.frames[0]);
     expect(points[0].coordinates).toHaveLength(2);
-    expect(points.every((point) => point.contributors >= 5)).toBe(true);
+    expect(points.every((point) => point.contributors === 0 || point.contributors >= 5)).toBe(true);
   });
 
   it("interpolates the portrait into visibly moving map points", () => {
-    const current = ACTIVITY_PORTRAIT.frames[0];
-    const next = ACTIVITY_PORTRAIT.frames[1];
+    const current = ACTIVITY_PORTRAIT.frames[1];
+    const next = ACTIVITY_PORTRAIT.frames[2];
     const halfway = interpolateActivityPoints(current, next, 0.5);
+    const movingIndex = current.points.findIndex((point, index) =>
+      point[0] !== next.points[index][0] || point[1] !== next.points[index][1]
+    );
 
     expect(halfway).toHaveLength(current.points.length);
-    expect(halfway[60].coordinates[0]).toBeCloseTo(
-      (current.points[60][0] + next.points[60][0]) / 2,
+    expect(movingIndex).toBeGreaterThan(-1);
+    expect(halfway.every((point) => point.contributors === 0 || point.contributors >= 5)).toBe(true);
+    expect(halfway[movingIndex].coordinates[0]).toBeCloseTo(
+      (current.points[movingIndex][0] + next.points[movingIndex][0]) / 2,
     );
     expect(interpolateActivityPoints(current, next, -1)[0].coordinates)
       .toEqual(activityPointsFromFrame(current)[0].coordinates);

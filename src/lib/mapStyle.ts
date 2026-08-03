@@ -156,7 +156,7 @@ export function createStyle(activity: GeoJSON.FeatureCollection): StyleSpecifica
         id: "activity-flow-glow",
         type: "circle",
         source: "activity",
-        filter: ["==", ["get", "kind"], "activity-cell"],
+        filter: ["all", ["==", ["get", "kind"], "activity-cell"], [">", ["get", "weight"], 0]],
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2, 16, 7],
           "circle-color": [
@@ -178,7 +178,7 @@ export function createStyle(activity: GeoJSON.FeatureCollection): StyleSpecifica
         id: "activity-flow-core",
         type: "circle",
         source: "activity",
-        filter: ["==", ["get", "kind"], "activity-cell"],
+        filter: ["all", ["==", ["get", "kind"], "activity-cell"], [">", ["get", "weight"], 0]],
         paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 0.7, 16, 2.1],
           "circle-color": "#fffdf3",

@@ -37,10 +37,12 @@ function coarsePresenceCoordinate(value: number) {
 export function AppShell({
   pulses,
   presenceCells = [],
+  songSignals = [],
   status,
   submitReport,
   submitPresence,
   recognizeSong,
+  confirmSong,
 }: AppShellProps) {
   const [selectedStageId, setSelectedStageId] = useState("sutro");
   const [reportOpen, setReportOpen] = useState(false);
@@ -78,6 +80,7 @@ export function AppShell({
   ], [activityFrame, activityProgress, nextActivityFrame, presenceCells]);
   const selectedPulse =
     effectivePulses.find((pulse) => pulse.stageId === selectedStage.id) ?? effectivePulses[0];
+  const selectedSongSignal = songSignals.find((signal) => signal.stageId === selectedStage.id);
 
   useEffect(() => {
     if (!activityPlaying || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -238,8 +241,27 @@ export function AppShell({
       <StagePulseSheet
         stage={selectedStage}
         pulse={selectedPulse}
+        now={new Date(activityFrame.at)}
+        songSignal={selectedSongSignal}
         onReport={() => setReportOpen(true)}
         recognizeSong={recognizeSong}
+        confirmSong={confirmSong
+          ? async (match) => {
+              try {
+                await confirmSong({
+                  stageId: selectedStage.id,
+                  anonId,
+                  title: match.title,
+                  artists: match.artists,
+                  acrid: match.acrid || undefined,
+                });
+                setToast({ message: `Your ${match.title} confirmation is live.`, tone: "success" });
+              } catch (error) {
+                setToast({ message: "The song confirmation did not send. Try again.", tone: "info" });
+                throw error;
+              }
+            }
+          : undefined}
       />
       {mapSupported ? (
         <div className="map-attribution">

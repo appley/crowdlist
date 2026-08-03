@@ -9,6 +9,8 @@ export const get = query({
     const now = Date.now();
     const activePresence = (await ctx.db.query("presence").collect())
       .filter((entry) => entry.updatedAt >= now - 2 * 60_000);
+    const recentSongConfirmations = (await ctx.db.query("songConfirmations").collect())
+      .filter((entry) => entry.createdAt >= now - 15 * 60_000);
     const cells = new Map<string, {
       cellId: string;
       longitude: number;
@@ -25,12 +27,40 @@ export const get = query({
         count: 1,
       });
     }
+    const songs = new Map<string, {
+      stageId: string;
+      title: string;
+      artists: string[];
+      confirmations: number;
+      updatedAt: number;
+    }>();
+    for (const entry of recentSongConfirmations) {
+      const key = `${entry.stageId}:${entry.title.trim().toLocaleLowerCase()}`;
+      const existing = songs.get(key);
+      if (existing) {
+        existing.confirmations += 1;
+        existing.updatedAt = Math.max(existing.updatedAt, entry.createdAt);
+      } else {
+        songs.set(key, {
+          stageId: entry.stageId,
+          title: entry.title,
+          artists: entry.artists,
+          confirmations: 1,
+          updatedAt: entry.createdAt,
+        });
+      }
+    }
+    const songSignals = [...songs.values()]
+      .sort((left, right) => right.confirmations - left.confirmations || right.updatedAt - left.updatedAt)
+      .filter((signal, index, all) => all.findIndex((candidate) => candidate.stageId === signal.stageId) === index)
+      .map((signal) => ({ ...signal, confirmed: signal.confirmations >= 2 }));
     return {
       pulses: pulses.map(({ _id, _creationTime, ...pulse }) => ({
         ...pulse,
         freshnessMinutes: Math.max(0, Math.floor((now - pulse.updatedAt) / 60_000)),
       })),
       presenceCells: [...cells.values()],
+      songSignals,
     };
   },
 });

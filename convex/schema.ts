@@ -52,6 +52,17 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_anon", ["anonId"]),
 
+  songConfirmations: defineTable({
+    stageId: v.string(),
+    anonId: v.string(),
+    title: v.string(),
+    artists: v.array(v.string()),
+    acrid: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_stage_created", ["stageId", "createdAt"])
+    .index("by_anon_stage", ["anonId", "stageId"]),
+
   jambaseArtists: defineTable({
     jambaseId: v.string(),
     eventId: v.string(),

@@ -1,14 +1,17 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Clock3, MessageCircleMore, Music2 } from "lucide-react";
 import { formatClock, scheduleAt } from "../../lib/schedule";
 import { CROWD_LABEL, ENERGY_LABEL, TREND_LABEL } from "../../lib/pulse";
-import type { SongRecognitionInput, SongRecognitionResponse, Stage, StagePulse } from "../../types";
+import type { SongMatch, SongRecognitionInput, SongRecognitionResponse, SongSignal, Stage, StagePulse } from "../../types";
 import { SongRecognition } from "./SongRecognition";
 
 interface StagePulseSheetProps {
   stage: Stage;
   pulse: StagePulse;
+  now: Date;
+  songSignal?: SongSignal;
   onReport: () => void;
   recognizeSong?: (input: SongRecognitionInput) => Promise<SongRecognitionResponse>;
+  confirmSong?: (match: SongMatch) => Promise<void>;
 }
 
 const TrendIcon = {
@@ -17,8 +20,8 @@ const TrendIcon = {
   falling: ArrowDownRight,
 };
 
-export function StagePulseSheet({ stage, pulse, onReport, recognizeSong }: StagePulseSheetProps) {
-  const schedule = scheduleAt(stage.id);
+export function StagePulseSheet({ stage, pulse, now, songSignal, onReport, recognizeSong, confirmSong }: StagePulseSheetProps) {
+  const schedule = scheduleAt(stage.id, now);
   const Icon = TrendIcon[pulse.trend];
   const communityReportCount = pulse.source === "mixed"
     ? Math.max(1, pulse.reportCount - (pulse.baselineCount ?? pulse.reportCount - 1))
@@ -63,7 +66,7 @@ export function StagePulseSheet({ stage, pulse, onReport, recognizeSong }: Stage
         <div className="performance-row performance-row--now">
           <div className="performance-row__icon"><Music2 size={17} aria-hidden="true" /></div>
           <div className="performance-row__copy">
-            <span>{schedule.now ? "Now" : "Between sets"}</span>
+            <span>{schedule.now ? "On stage" : "Between sets"}</span>
             <strong>{schedule.now?.name ?? "A little breathing room"}</strong>
           </div>
           {schedule.now ? <time>{formatClock(schedule.now.end)} end</time> : null}
@@ -85,7 +88,13 @@ export function StagePulseSheet({ stage, pulse, onReport, recognizeSong }: Stage
         </p>
       ) : null}
 
-      <SongRecognition stage={stage} recognizeSong={recognizeSong} />
+      <SongRecognition
+        stage={stage}
+        scheduledArtist={schedule.now?.name}
+        signal={songSignal}
+        recognizeSong={recognizeSong}
+        confirmSong={confirmSong}
+      />
 
       <div className="stage-sheet__footer">
         <div className="report-proof">

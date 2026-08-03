@@ -1,10 +1,12 @@
-import { AudioLines, CircleStop, ExternalLink, LoaderCircle, Mic2, RotateCcw } from "lucide-react";
+import { AudioLines, Check, CircleStop, ExternalLink, LoaderCircle, Mic2, RotateCcw, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { blobToBase64, chooseRecordingMimeType } from "../../lib/audio";
 import type {
   SongRecognitionInput,
   SongRecognitionResponse,
+  SongMatch,
+  SongSignal,
   Stage,
 } from "../../types";
 
@@ -20,15 +22,21 @@ type RecognitionState =
 
 interface SongRecognitionProps {
   stage: Stage;
+  scheduledArtist?: string;
+  signal?: SongSignal;
   recognizeSong?: (input: SongRecognitionInput) => Promise<SongRecognitionResponse>;
+  confirmSong?: (match: SongMatch) => Promise<void>;
 }
 
 function stopTracks(stream: MediaStream | null) {
   stream?.getTracks().forEach((track) => track.stop());
 }
 
-export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) {
+export function SongRecognition({ stage, scheduledArtist, signal, recognizeSong, confirmSong }: SongRecognitionProps) {
   const [state, setState] = useState<RecognitionState>({ name: "idle" });
+  const [confirming, setConfirming] = useState(false);
+  const [confirmedLocally, setConfirmedLocally] = useState(false);
+  const [confirmationFailed, setConfirmationFailed] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const stopTimerRef = useRef<number | null>(null);
@@ -54,6 +62,9 @@ export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) 
   useEffect(() => {
     sessionRef.current += 1;
     setState({ name: "idle" });
+    setConfirming(false);
+    setConfirmedLocally(false);
+    setConfirmationFailed(false);
     stopCapture();
   }, [stage.id, stopCapture]);
 
@@ -184,10 +195,35 @@ export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) 
 
   const result = state.name === "result" ? state.result : null;
   const match = result?.status === "match" ? result.match : null;
+  const signalMatches = Boolean(match && signal && match.title.trim().toLocaleLowerCase() === signal.title.trim().toLocaleLowerCase());
+  const displayed = match ?? (signal
+    ? { title: signal.title, artists: signal.artists, acrid: "" }
+    : null);
+  const confirmations = signal && (!match || signalMatches) ? signal.confirmations : 0;
+  const crowdVerified = Boolean(signal && (!match || signalMatches) && signal.confirmed);
+
+  const confirmDisplayedSong = useCallback(async () => {
+    if (!displayed || !confirmSong || confirmedLocally) return;
+    setConfirming(true);
+    setConfirmationFailed(false);
+    try {
+      await confirmSong(displayed);
+      setConfirmedLocally(true);
+    } catch {
+      setConfirmationFailed(true);
+    } finally {
+      setConfirming(false);
+    }
+  }, [confirmSong, confirmedLocally, displayed]);
 
   return (
     <div className={`song-recognition song-recognition--${state.name}`}>
       <div className="song-recognition__action">
+        <div className="song-recognition__intro">
+          <AudioLines size={18} aria-hidden="true" />
+          <span>Live song ID</span>
+          <strong>{scheduledArtist ? `What is ${scheduledArtist} playing?` : `What is playing at ${stage.name}?`}</strong>
+        </div>
         <button
           className="song-recognition__button"
           type="button"
@@ -208,9 +244,9 @@ export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) 
           {state.name === "listening" && `Listening · ${state.secondsLeft}s`}
           {state.name === "identifying" && "Finding song…"}
           {state.name === "result" && "Try another song"}
-          {state.name === "idle" && "What song is this?"}
+          {state.name === "idle" && "Identify this song"}
         </button>
-        <p id="song-recognition-note">10-second mic sample · not saved by CrowdList</p>
+        <p id="song-recognition-note">10-second mic sample · not saved · confirm with the crowd</p>
       </div>
 
       {state.name === "listening" ? (
@@ -224,15 +260,16 @@ export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) 
         </div>
       ) : null}
 
-      {match ? (
-        <div className="song-recognition__result song-recognition__result--match" role="status" aria-live="polite">
-          <AudioLines size={19} aria-hidden="true" />
-          <div>
-            <span>Heard at {stage.name}</span>
-            <strong>{match.title}</strong>
-            <p>{match.artists.length ? match.artists.join(", ") : "Artist unavailable"}</p>
-          </div>
-          {match.spotifyId || match.youtubeId ? (
+      {displayed ? (
+        <div className="song-recognition__now" role="status" aria-live="polite">
+          <div className="song-recognition__result song-recognition__result--match">
+            <AudioLines size={19} aria-hidden="true" />
+            <div>
+              <span>{match ? `Heard at ${stage.name}` : `${crowdVerified ? "Crowd verified" : "Crowd candidate"} · ${stage.name}`}</span>
+              <strong>{displayed.title}</strong>
+              <p>{displayed.artists.length ? displayed.artists.join(", ") : scheduledArtist ?? "Artist unavailable"}</p>
+            </div>
+            {match && (match.spotifyId || match.youtubeId) ? (
             <a
               href={match.spotifyId
                 ? `https://open.spotify.com/track/${encodeURIComponent(match.spotifyId)}`
@@ -243,6 +280,25 @@ export function SongRecognition({ stage, recognizeSong }: SongRecognitionProps) 
             >
               <ExternalLink size={17} aria-hidden="true" />
             </a>
+            ) : null}
+          </div>
+          <div className="song-recognition__consensus">
+            <span>
+              <Users size={15} aria-hidden="true" />
+              {confirmations > 0
+                ? `${confirmations} ${confirmations === 1 ? "person agrees" : "people agree"}`
+                : "No crowd confirmations yet"}
+            </span>
+            <small>{crowdVerified ? "Crowd verified" : "Two independent confirmations publish the live song"}</small>
+            {confirmSong ? (
+              <button type="button" onClick={confirmDisplayedSong} disabled={confirming || confirmedLocally}>
+                <Check size={16} aria-hidden="true" />
+                {confirmedLocally ? "You confirmed" : confirming ? "Confirming…" : "That’s playing"}
+              </button>
+            ) : null}
+          </div>
+          {confirmationFailed ? (
+            <p className="song-recognition__confirmation-error">Confirmation did not send. Please try again.</p>
           ) : null}
         </div>
       ) : null}

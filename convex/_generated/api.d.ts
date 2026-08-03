@@ -18,6 +18,7 @@ import type * as presence from "../presence.js";
 import type * as pulseModel from "../pulseModel.js";
 import type * as pulses from "../pulses.js";
 import type * as reports from "../reports.js";
+import type * as songSignals from "../songSignals.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   pulseModel: typeof pulseModel;
   pulses: typeof pulses;
   reports: typeof reports;
+  songSignals: typeof songSignals;
 }>;
 
 /**

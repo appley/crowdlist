@@ -22,7 +22,8 @@ V1 ships one complete loop:
 - Use OpenAI to turn optional natural-language detail into a validated live
   signal; chip-only reporting still works without AI.
 - Optionally identify the song playing at a selected stage from a short mic
-  sample. This secondary flow never blocks the map or fixture demo.
+  sample, then confirm the shared candidate. Two independent fans crowd-verify
+  the current song; this secondary flow never blocks the map or fixture demo.
 
 The map is the primary interface. CrowdList does not recreate the official
 lineup, schedule planner, favorites, alerts, directory, policies, or ticketing.
@@ -38,8 +39,10 @@ are deliberately excluded from the first build.
 - An OpenAI Sites-compatible React and TypeScript project
 - MapLibre GL JS drawing Golden Gate Park from OpenStreetMap geometry, colored
   and labeled after the official patron map rather than rasterizing it
-- A compact build-time activity generator: 24 privacy-thresholded frames ship
-  in 85 KB instead of running a heavy crowd simulation on each fan's phone
+- Krish's tested CrowdSim engine, adapted to the official seven-stage geometry:
+  8,000 seeded agents move over a reduced 207-node OSM path graph and aggregate
+  into H3 cells with a five-contributor privacy floor. The resulting 24-frame,
+  134 KB portrait ships instead of running the simulation on each fan's phone
 - Convex as the external backend for reports, stage pulses, OpenAI actions, and
   demo state
 - JamBase REST API imported and cached server-side
@@ -100,7 +103,9 @@ rebuilds `data/ol26/ggp-base.json` from OpenStreetMap, and
 that every stage point still sits inside the zone its sheet names. Both are
 build-time only; the app ships the generated files.
 `bun run activity:build` deterministically regenerates the simulated activity
-portrait. Every emitted cell represents at least five simulated contributors,
-and the UI always identifies the portrait as simulated rather than measured.
+portrait. `scripts/import-crowdsim-graph.mjs` records how the official stage
+geometry was cross-walked onto the `krish-dev` CrowdSim path graph. Every
+visible cell represents at least five simulated contributors, and the UI always
+identifies the portrait as an estimate rather than measurement.
 Run `bun run check` before publishing. Server secrets belong in the Convex
 deployment; only `VITE_CONVEX_URL` is supplied to the Sites build.
