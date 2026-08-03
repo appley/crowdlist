@@ -4,7 +4,7 @@
 Outside Lands hackathon. The product combines crowd density, Now Playing, and a
 rolling stage setlist powered by music recognition plus human agreement.
 
-This branch contains **Stage 1 plus the first demo heatmap**:
+This branch contains the **CrowdList demo experience and data foundation**:
 
 - Expo SDK 54 + React Native + TypeScript scaffold that runs in Expo Go.
 - A Sites-hosted D1 backend with a deliberately thin repository interface.
@@ -12,13 +12,16 @@ This branch contains **Stage 1 plus the first demo heatmap**:
   and cached setlist items.
 - The official 2026 Friday schedule for seven Outside Lands stages.
 - Seed, crowd simulation, and combined reseed scripts.
-- A backend inspector page for verifying the seed and raw simulated records.
+- A responsive Sites web app with the Outside Lands patron map, crowd hotspots,
+  stage schedule, and song-entry flow.
 - An Expo Go map that renders recent presence as per-stage crowd hotspots and
   refreshes from the backend every 15 seconds.
+- A stage-level song flow with manual entry, human-agreement promotion, and an
+  optional 10-second ACRCloud recognition sample.
 
-Location heartbeat/audio, AudD, OpenAI normalization, nearest-stage assignment,
-voting, promotion, and setlist transitions are not implemented yet. The map
-currently visualizes seeded or simulated presence from the existing API.
+Location heartbeat, OpenAI normalization, nearest-stage assignment, voter
+identity, and setlist transitions are not implemented yet. The map currently
+visualizes seeded or simulated presence from the existing API.
 
 ## Why Expo SDK 54
 
@@ -41,7 +44,7 @@ OpenAI tokens server-side; never expose them through an `EXPO_PUBLIC_*` variable
 
 ## Run and verify Stage 1 locally
 
-Start the backend inspector:
+Start the Sites web app and backend:
 
 ```bash
 npm run dev
@@ -77,7 +80,7 @@ Seed verified: 7 stages and 49 Friday lineup slots.
 Simulation verified: 96 fresh presence records across 7 stages.
 ```
 
-Refresh the backend inspector to see those stage and presence records. For a
+Refresh the web heatmap to see those stage and presence records. For a
 larger or deterministic crowd, edit `SIMULATED_PRESENCE_COUNT` or
 `SIMULATION_SEED` in `.env`.
 
@@ -92,7 +95,25 @@ npm run mobile
 
 Scan the QR code with Expo Go. The app shows the seven stages and counts presence
 heartbeats updated within the last two minutes. It refreshes every 15 seconds.
-It does not request location or audio permission yet.
+It requests microphone permission only when the user starts song recognition;
+location heartbeat is not implemented yet.
+
+## Identify or enter a song
+
+Tap a stage marker, then tap **Identify song**. Manual title/artist submission
+works without provider credentials. For audio recognition, configure these
+server-only values in the root `.env` or hosted environment:
+
+```text
+ACRCLOUD_HOST=identify-us-west-2.acrcloud.com
+ACRCLOUD_ACCESS_KEY=...
+ACRCLOUD_ACCESS_SECRET=...
+```
+
+The app records one 10-second sample and does not retain it. A recognition match
+must still be confirmed by the user. `CROWDLIST_DEMO_THRESHOLD_ENABLED=true`
+confirms the first submission; otherwise `CROWDLIST_AGREEMENT_THRESHOLD`
+defaults to two.
 
 ## Backend seam
 
@@ -116,6 +137,9 @@ domain types and later product logic unchanged.
 - `GET /api/stage-one` — raw stage and presence snapshot.
 - `POST /api/admin/seed` — protected full Stage 1 reset + stage seed.
 - `POST /api/admin/simulate` — protected replacement of simulated presence.
+- `POST /api/identify` — server-side ACRCloud audio identification.
+- `POST /api/songs/propose` — manual or recognized song proposal and agreement
+  promotion.
 
 Admin routes require `x-crowdlist-admin-token` to match the server-side
 `CROWDLIST_ADMIN_TOKEN` environment variable.

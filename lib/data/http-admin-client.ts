@@ -1,5 +1,4 @@
 import type {
-  CrowdListRepository,
   SimulatedPresenceInput,
   Stage,
   StageOneSnapshot,
@@ -10,7 +9,7 @@ type HttpAdminClientOptions = {
   adminToken: string;
 };
 
-export class HttpAdminCrowdListRepository implements CrowdListRepository {
+export class HttpAdminCrowdListRepository {
   constructor(private readonly options: HttpAdminClientOptions) {}
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -46,6 +45,7 @@ export class HttpAdminCrowdListRepository implements CrowdListRepository {
       body: JSON.stringify({ presence }),
     });
   }
+
 }
 
 export function getHttpAdminRepositoryFromEnv() {

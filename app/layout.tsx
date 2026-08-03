@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CrowdList · Stage 1",
-  description: "CrowdList backend seed and simulation inspector for Outside Lands 2026.",
+  title: "CrowdList · Outside Lands live map",
+  description: "Live Outside Lands crowd heatmap, stage schedule, and community setlists.",
   other: {
     "codex-preview": "development",
   },

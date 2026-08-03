@@ -5,6 +5,7 @@ import type {
   Stage,
   StageOneSnapshot,
 } from "./types";
+import type { SongProposalInput, SongProposalResult } from "./song-proposals";
 import { getCrowdListRuntimeEnv } from "./runtime-env";
 
 type StageRow = {
@@ -101,6 +102,52 @@ export class D1CrowdListRepository implements CrowdListRepository {
           ),
       ),
     );
+  }
+
+  async submitSongProposal(
+    input: SongProposalInput,
+    threshold: number,
+  ): Promise<SongProposalResult> {
+    const db = database();
+    await db
+      .prepare(
+        "INSERT INTO proposals (id, stage_id, title, artist, source, votes, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
+      )
+      .bind(
+        crypto.randomUUID(),
+        input.stageId,
+        input.title,
+        input.artist,
+        input.source,
+        Date.now(),
+      )
+      .run();
+
+    const voteResult = await db
+      .prepare(
+        "SELECT COUNT(*) AS votes FROM proposals WHERE stage_id = ? AND lower(title) = lower(?) AND lower(artist) = lower(?)",
+      )
+      .bind(input.stageId, input.title, input.artist)
+      .first<{ votes: number }>();
+    const votes = Number(voteResult?.votes ?? 1);
+    const status = votes >= threshold ? "confirmed" : "proposed";
+
+    if (status === "confirmed") {
+      await db
+        .prepare(
+          "INSERT INTO now_playing (stage_id, title, artist, source, confidence, status) VALUES (?, ?, ?, ?, ?, 'confirmed') ON CONFLICT(stage_id) DO UPDATE SET title = excluded.title, artist = excluded.artist, source = excluded.source, confidence = excluded.confidence, status = excluded.status",
+        )
+        .bind(
+          input.stageId,
+          input.title,
+          input.artist,
+          input.source,
+          input.confidence ?? (input.source === "acrcloud" ? 0.8 : 0.6),
+        )
+        .run();
+    }
+
+    return { ...input, votes, threshold, status };
   }
 }
 

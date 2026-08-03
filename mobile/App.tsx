@@ -9,13 +9,14 @@ import {
   View,
 } from "react-native";
 import MapView, { Circle, Marker } from "react-native-maps";
+import { SongIdentifier } from "./src/components/SongIdentifier";
 import {
   countPresenceByStage,
   getFeaturedLineupSlot,
   getFreshPresence,
 } from "./src/data/crowd";
 import { createCrowdListDataSource } from "./src/data/http-data-source";
-import type { StageOneSnapshot } from "./src/data/types";
+import type { Stage, StageOneSnapshot } from "./src/data/types";
 
 const FESTIVAL_REGION = {
   latitude: 37.7698,
@@ -38,6 +39,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+  const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
+  const [songIdentifierOpen, setSongIdentifierOpen] = useState(false);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -101,8 +104,12 @@ export default function App() {
             refreshedAt?.getTime() ?? 0,
           );
           return (
-            <Marker key={stage.id} coordinate={{ latitude: stage.lat, longitude: stage.lng }}>
-              <View style={styles.marker}>
+            <Marker
+              key={stage.id}
+              coordinate={{ latitude: stage.lat, longitude: stage.lng }}
+              onPress={() => setSelectedStage(stage)}
+            >
+              <View style={[styles.marker, selectedStage?.id === stage.id && styles.markerSelected]}>
                 <Text style={styles.markerCount}>{counts.get(stage.id) ?? 0}</Text>
                 <Text numberOfLines={1} style={styles.markerName}>{stage.name}</Text>
                 {featuredSlot ? (
@@ -164,10 +171,25 @@ export default function App() {
                 <View style={[styles.legendDot, { backgroundColor: "#ff4f37" }]} />
                 <Text style={styles.legendText}>Packed</Text>
               </View>
+              <Pressable
+                disabled={!selectedStage}
+                onPress={() => setSongIdentifierOpen(true)}
+                style={[styles.songButton, !selectedStage && styles.songButtonDisabled]}
+              >
+                <Text style={styles.songButtonText}>
+                  {selectedStage ? `Identify song at ${selectedStage.name}` : "Tap a stage marker to identify a song"}
+                </Text>
+              </Pressable>
             </>
           )}
         </View>
       </SafeAreaView>
+      {songIdentifierOpen && selectedStage ? (
+        <SongIdentifier
+          onClose={() => setSongIdentifierOpen(false)}
+          stage={selectedStage}
+        />
+      ) : null}
     </View>
   );
 }
@@ -204,6 +226,7 @@ const styles = StyleSheet.create({
   legendDot: { borderRadius: 5, height: 10, marginLeft: 9, marginRight: 4, width: 10 },
   legendText: { color: "#69635d", fontSize: 10 },
   marker: { alignItems: "center", backgroundColor: "#171615", borderColor: "#fffdf7", borderRadius: 11, borderWidth: 2, maxWidth: 132, minWidth: 72, paddingHorizontal: 8, paddingVertical: 6 },
+  markerSelected: { borderColor: "#dfff36", borderWidth: 3 },
   markerCount: { color: "#dfff36", fontSize: 16, fontWeight: "900" },
   markerName: { color: "white", fontSize: 9, fontWeight: "800", maxWidth: 112 },
   markerArtist: { color: "#dfff36", fontSize: 8, fontWeight: "700", marginTop: 2, maxWidth: 112, textAlign: "center" },
@@ -211,4 +234,7 @@ const styles = StyleSheet.create({
   errorText: { color: "#69635d", fontSize: 12, lineHeight: 17, marginTop: 5 },
   retryButton: { alignSelf: "flex-start", backgroundColor: "#171615", borderRadius: 999, marginTop: 12, paddingHorizontal: 15, paddingVertical: 9 },
   retryText: { color: "#dfff36", fontSize: 12, fontWeight: "800" },
+  songButton: { alignItems: "center", backgroundColor: "#171615", borderRadius: 999, marginTop: 14, padding: 12 },
+  songButtonDisabled: { backgroundColor: "#d8d2c7" },
+  songButtonText: { color: "#dfff36", fontSize: 12, fontWeight: "900" },
 });

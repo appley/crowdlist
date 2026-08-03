@@ -14,6 +14,7 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "test:stage1": "bash scripts/sites-env.sh -- node --import tsx --test tests/stage-one-scripts.test.ts",
     "test:heatmap": "bash scripts/sites-env.sh -- node --import tsx --test tests/crowd-heatmap.test.ts",
+    "test:songs": "bash scripts/sites-env.sh -- node --import tsx --test tests/song-identification.test.ts",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",

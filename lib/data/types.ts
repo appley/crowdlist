@@ -60,4 +60,8 @@ export interface CrowdListRepository {
   getStageOneSnapshot(): Promise<StageOneSnapshot>;
   resetStageOne(stages: Stage[]): Promise<void>;
   replacePresence(presence: SimulatedPresenceInput[]): Promise<void>;
+  submitSongProposal(
+    input: import("./song-proposals").SongProposalInput,
+    threshold: number,
+  ): Promise<import("./song-proposals").SongProposalResult>;
 }

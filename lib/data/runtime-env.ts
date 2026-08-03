@@ -1,6 +1,11 @@
 export type CrowdListRuntimeEnv = {
   DB: D1Database;
   CROWDLIST_ADMIN_TOKEN?: string;
+  CROWDLIST_AGREEMENT_THRESHOLD?: string;
+  CROWDLIST_DEMO_THRESHOLD_ENABLED?: string;
+  ACRCLOUD_HOST?: string;
+  ACRCLOUD_ACCESS_KEY?: string;
+  ACRCLOUD_ACCESS_SECRET?: string;
 };
 
 declare global {
