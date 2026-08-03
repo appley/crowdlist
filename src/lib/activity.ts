@@ -25,3 +25,23 @@ export function activityPointsFromFrame(frame: ActivityFrame): ActivityPoint[] {
     contributors,
   }));
 }
+
+export function interpolateActivityPoints(
+  current: ActivityFrame,
+  next: ActivityFrame,
+  progress: number,
+): ActivityPoint[] {
+  const amount = Math.min(1, Math.max(0, progress));
+  if (current.points.length !== next.points.length) return activityPointsFromFrame(current);
+  return current.points.map(([longitude, latitude, weight, contributors], index) => {
+    const [nextLongitude, nextLatitude, nextWeight, nextContributors] = next.points[index];
+    return {
+      coordinates: [
+        longitude + (nextLongitude - longitude) * amount,
+        latitude + (nextLatitude - latitude) * amount,
+      ],
+      weight: weight + (nextWeight - weight) * amount,
+      contributors: Math.round(contributors + (nextContributors - contributors) * amount),
+    };
+  });
+}

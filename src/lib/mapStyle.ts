@@ -152,6 +152,42 @@ export function createStyle(activity: GeoJSON.FeatureCollection): StyleSpecifica
           ],
         },
       },
+      {
+        id: "activity-flow-glow",
+        type: "circle",
+        source: "activity",
+        filter: ["==", ["get", "kind"], "activity-cell"],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2, 16, 7],
+          "circle-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "weight"],
+            0.12,
+            "#7fffd0",
+            0.65,
+            "#efff43",
+            1.25,
+            "#ff7849",
+          ],
+          "circle-opacity": ["interpolate", ["linear"], ["get", "weight"], 0.12, 0.14, 1.25, 0.48],
+          "circle-blur": 0.72,
+        },
+      },
+      {
+        id: "activity-flow-core",
+        type: "circle",
+        source: "activity",
+        filter: ["==", ["get", "kind"], "activity-cell"],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 0.7, 16, 2.1],
+          "circle-color": "#fffdf3",
+          "circle-opacity": ["interpolate", ["linear"], ["get", "weight"], 0.12, 0.24, 1.25, 0.84],
+          "circle-stroke-width": 0.6,
+          "circle-stroke-color": "#153b2b",
+          "circle-stroke-opacity": 0.32,
+        },
+      },
     ],
   };
 }

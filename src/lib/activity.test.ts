@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ACTIVITY_PORTRAIT } from "../data/activity";
 import { INITIAL_PULSES, STAGES } from "../data/festival";
-import { activityPointsFromFrame, mergeActivityPulses } from "./activity";
+import { activityPointsFromFrame, interpolateActivityPoints, mergeActivityPulses } from "./activity";
 
 describe("activity portrait", () => {
   it("ships a compact deterministic loop for every official stage", () => {
@@ -41,5 +41,18 @@ describe("activity portrait", () => {
     const points = activityPointsFromFrame(ACTIVITY_PORTRAIT.frames[0]);
     expect(points[0].coordinates).toHaveLength(2);
     expect(points.every((point) => point.contributors >= 5)).toBe(true);
+  });
+
+  it("interpolates the portrait into visibly moving map points", () => {
+    const current = ACTIVITY_PORTRAIT.frames[0];
+    const next = ACTIVITY_PORTRAIT.frames[1];
+    const halfway = interpolateActivityPoints(current, next, 0.5);
+
+    expect(halfway).toHaveLength(current.points.length);
+    expect(halfway[60].coordinates[0]).toBeCloseTo(
+      (current.points[60][0] + next.points[60][0]) / 2,
+    );
+    expect(interpolateActivityPoints(current, next, -1)[0].coordinates)
+      .toEqual(activityPointsFromFrame(current)[0].coordinates);
   });
 });

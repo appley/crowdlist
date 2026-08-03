@@ -2,7 +2,7 @@ import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ACTIVITY_PORTRAIT } from "../data/activity";
 import { DEMO_LOCATION, STAGES } from "../data/festival";
-import { activityPointsFromFrame, mergeActivityPulses } from "../lib/activity";
+import { interpolateActivityPoints, mergeActivityPulses } from "../lib/activity";
 import { getAnonymousId } from "../lib/identity";
 import { hasWebGl } from "../lib/webgl";
 import type { FestivalDataSource, ReportInput } from "../types";
@@ -50,6 +50,7 @@ export function AppShell({
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [recenterToken, setRecenterToken] = useState(0);
   const [activityFrameIndex, setActivityFrameIndex] = useState(0);
+  const [activityProgress, setActivityProgress] = useState(0);
   const [activityPlaying, setActivityPlaying] = useState(true);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "info" } | null>(null);
   const anonId = useMemo(() => getAnonymousId(), []);
@@ -60,26 +61,35 @@ export function AppShell({
 
   const selectedStage = STAGES.find((stage) => stage.id === selectedStageId) ?? STAGES[0];
   const activityFrame = ACTIVITY_PORTRAIT.frames[activityFrameIndex] ?? ACTIVITY_PORTRAIT.frames[0];
+  const nextActivityFrame = ACTIVITY_PORTRAIT.frames[
+    (activityFrameIndex + 1) % ACTIVITY_PORTRAIT.frames.length
+  ] ?? activityFrame;
   const effectivePulses = useMemo(
     () => mergeActivityPulses(pulses, activityFrame),
     [activityFrame, pulses],
   );
   const activityPoints = useMemo(() => [
-    ...activityPointsFromFrame(activityFrame),
+    ...interpolateActivityPoints(activityFrame, nextActivityFrame, activityProgress),
     ...presenceCells.map((cell) => ({
       coordinates: [cell.longitude, cell.latitude] as [number, number],
       weight: Math.min(1.25, 0.72 + cell.count * 0.13),
       contributors: cell.count,
     })),
-  ], [activityFrame, presenceCells]);
+  ], [activityFrame, activityProgress, nextActivityFrame, presenceCells]);
   const selectedPulse =
     effectivePulses.find((pulse) => pulse.stageId === selectedStage.id) ?? effectivePulses[0];
 
   useEffect(() => {
     if (!activityPlaying || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const tickMs = 100;
     const interval = window.setInterval(() => {
-      setActivityFrameIndex((index) => (index + 1) % ACTIVITY_PORTRAIT.frames.length);
-    }, ACTIVITY_PORTRAIT.meta.frameDurationMs);
+      setActivityProgress((progress) => {
+        const next = progress + tickMs / ACTIVITY_PORTRAIT.meta.frameDurationMs;
+        if (next < 1) return next;
+        setActivityFrameIndex((index) => (index + 1) % ACTIVITY_PORTRAIT.frames.length);
+        return next - 1;
+      });
+    }, tickMs);
     return () => window.clearInterval(interval);
   }, [activityPlaying]);
 
@@ -201,7 +211,7 @@ export function AppShell({
         </strong>
         <span className="demo-clock__control">
           {activityPlaying ? <Pause size={11} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
-          {activityPlaying ? "LIVE" : "PAUSED"}
+          {activityPlaying ? "FLOW" : "PAUSED"}
         </span>
       </button>
       {mapSupported ? (
@@ -214,6 +224,10 @@ export function AppShell({
             locating={locating}
           />
           <div className="map-key" aria-label="Crowd comfort key">
+            <div className={`map-key__motion ${activityPlaying ? "map-key__motion--playing" : ""}`}>
+              <span className="map-key__particles" aria-hidden="true"><i /><i /><i /></span>
+              <strong>{activityPlaying ? "Simulated flow moving" : "Simulated flow paused"}</strong>
+            </div>
             <span><i className="key-dot key-dot--easy" />Easy</span>
             <span><i className="key-dot key-dot--comfortable" />Comfortable</span>
             <span><i className="key-dot key-dot--busy" />Busy</span>
