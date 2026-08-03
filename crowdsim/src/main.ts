@@ -109,4 +109,12 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "[") { speed = speeds[Math.max(0, index - 1)]; draw(); }
   if (event.key === "]") { speed = speeds[Math.min(speeds.length - 1, index + 1)]; draw(); }
 });
-if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/crowdsim/sw.js", { scope: "/crowdsim/" });
+if ("serviceWorker" in navigator) {
+  void navigator.serviceWorker.register("/crowdsim/sw.js", { scope: "/crowdsim/" })
+    .then(() => navigator.serviceWorker.ready)
+    .then((registration) => console.info("CrowdSim offline cache ready", {
+      active: registration.active?.state,
+      controlled: Boolean(navigator.serviceWorker.controller),
+    }))
+    .catch((error) => console.error("CrowdSim offline cache failed", error));
+}

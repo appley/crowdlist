@@ -65,6 +65,9 @@ and current. Update existing sections instead of appending a task diary.
   PMTiles basemap, H3 density buckets with a k-anonymity floor of five, and
   production-shaped NDJSON replay fixtures. Its simulated-data status remains
   visible at all times.
+- CrowdSim's production build generates a versioned service worker manifest
+  containing every hashed client and worker asset plus its graph and PMTiles
+  data. The complete simulator reopens offline after one successful load.
 
 ## External Configuration Still Required
 
