@@ -47,6 +47,16 @@ Start the backend inspector:
 npm run dev
 ```
 
+On a machine that cannot run the Cloudflare local runtime, start the lightweight
+in-memory demo API instead:
+
+```bash
+npm run demo:server
+```
+
+The demo API supports the same Stage 1 snapshot, seed, and simulate routes used
+by the Expo app and scripts. It is intentionally non-persistent.
+
 In a second terminal, seed and simulate:
 
 ```bash

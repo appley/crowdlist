@@ -35,10 +35,14 @@ and current. Update existing sections instead of appending a task diary.
 - The Expo application scaffold lives in `mobile/`.
 - The Expo map renders per-stage `<Circle>` overlays from presence heartbeats in
   the latest two-minute window and refreshes every 15 seconds.
+- Stage markers feature the current scheduled artist or the next artist when no
+  set is active.
 - The D1 schema models stages, presence, now playing, proposals, and setlists.
 - `scripts/seed.ts` loads seven Outside Lands stages and 49 Friday lineup slots.
 - `scripts/simulate.ts` creates deterministic recent crowd-presence records.
 - `scripts/reseed.ts` resets seed and simulation state together.
+- `scripts/demo-server.ts` provides a non-persistent Stage 1 API for local Expo
+  demos when the Cloudflare runtime is unavailable.
 - Location heartbeat and the remaining Stage 2 logic and Stage 3 product UI are
   not implemented yet.
 

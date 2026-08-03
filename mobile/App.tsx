@@ -9,7 +9,11 @@ import {
   View,
 } from "react-native";
 import MapView, { Circle, Marker } from "react-native-maps";
-import { countPresenceByStage, getFreshPresence } from "./src/data/crowd";
+import {
+  countPresenceByStage,
+  getFeaturedLineupSlot,
+  getFreshPresence,
+} from "./src/data/crowd";
 import { createCrowdListDataSource } from "./src/data/http-data-source";
 import type { StageOneSnapshot } from "./src/data/types";
 
@@ -91,14 +95,25 @@ export default function App() {
             />
           );
         })}
-        {snapshot.stages.map((stage) => (
-          <Marker key={stage.id} coordinate={{ latitude: stage.lat, longitude: stage.lng }}>
-            <View style={styles.marker}>
-              <Text style={styles.markerCount}>{counts.get(stage.id) ?? 0}</Text>
-              <Text numberOfLines={1} style={styles.markerName}>{stage.name}</Text>
-            </View>
-          </Marker>
-        ))}
+        {snapshot.stages.map((stage) => {
+          const featuredSlot = getFeaturedLineupSlot(
+            stage.lineup,
+            refreshedAt?.getTime() ?? 0,
+          );
+          return (
+            <Marker key={stage.id} coordinate={{ latitude: stage.lat, longitude: stage.lng }}>
+              <View style={styles.marker}>
+                <Text style={styles.markerCount}>{counts.get(stage.id) ?? 0}</Text>
+                <Text numberOfLines={1} style={styles.markerName}>{stage.name}</Text>
+                {featuredSlot ? (
+                  <Text numberOfLines={2} style={styles.markerArtist}>
+                    {featuredSlot.status} · {featuredSlot.artist}
+                  </Text>
+                ) : null}
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
       <SafeAreaView pointerEvents="box-none" style={styles.overlay}>
@@ -188,9 +203,10 @@ const styles = StyleSheet.create({
   legendLabel: { color: "#69635d", fontSize: 10, fontWeight: "700", marginRight: "auto", textTransform: "uppercase" },
   legendDot: { borderRadius: 5, height: 10, marginLeft: 9, marginRight: 4, width: 10 },
   legendText: { color: "#69635d", fontSize: 10 },
-  marker: { alignItems: "center", backgroundColor: "#171615", borderColor: "#fffdf7", borderRadius: 11, borderWidth: 2, maxWidth: 104, minWidth: 50, paddingHorizontal: 7, paddingVertical: 5 },
+  marker: { alignItems: "center", backgroundColor: "#171615", borderColor: "#fffdf7", borderRadius: 11, borderWidth: 2, maxWidth: 132, minWidth: 72, paddingHorizontal: 8, paddingVertical: 6 },
   markerCount: { color: "#dfff36", fontSize: 16, fontWeight: "900" },
-  markerName: { color: "white", fontSize: 8, fontWeight: "700", maxWidth: 88 },
+  markerName: { color: "white", fontSize: 9, fontWeight: "800", maxWidth: 112 },
+  markerArtist: { color: "#dfff36", fontSize: 8, fontWeight: "700", marginTop: 2, maxWidth: 112, textAlign: "center" },
   errorTitle: { color: "#171615", fontSize: 17, fontWeight: "800" },
   errorText: { color: "#69635d", fontSize: 12, lineHeight: 17, marginTop: 5 },
   retryButton: { alignSelf: "flex-start", backgroundColor: "#171615", borderRadius: 999, marginTop: 12, paddingHorizontal: 15, paddingVertical: 9 },
