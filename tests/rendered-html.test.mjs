@@ -58,14 +58,38 @@ test("publication remains crowd-gated and offline contributions remain device-lo
   assert.match(serviceWorker, /caches\.match/);
 });
 
-test("the front page uses the local street basemap instead of presenting crowd data on a decorative field", async () => {
+test("a deployment refreshes the app shell without deleting CrowdSim's separate offline cache", async () => {
+  const [page, serviceWorker, crowdSimConfig] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
+    readFile(new URL("../crowdsim/vite.config.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /controllerchange/);
+  assert.match(serviceWorker, /crowdlist-shell-v2/);
+  assert.match(serviceWorker, /event\.request\.mode === "navigate"/);
+  assert.match(serviceWorker, /key\.startsWith\("crowdlist-shell-"\)/);
+  assert.match(crowdSimConfig, /crowdsim-v4/);
+  assert.match(crowdSimConfig, /key\.startsWith\(\"crowdsim-\"\)/);
+});
+
+test("network status cannot change the server and client trees before hydration", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /const \[online, setOnline\] = useState\(true\)/);
+  assert.match(page, /setOnline\(navigator\.onLine\)/);
+  assert.doesNotMatch(page, /useState\(\(\) => typeof navigator/);
+});
+
+test("the front page uses an actual street basemap instead of presenting crowd data on a decorative field", async () => {
   const [page, styles, manifest] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
   assert.match(page, /outside-lands\.pmtiles/);
-  assert.match(page, /new pmtiles\.Protocol/);
+  assert.match(page, /new Protocol/);
+  assert.match(page, /new File\(\[tileBlob\], "outside-lands"\)/);
+  assert.match(page, /url: "pmtiles:\/\/outside-lands"/);
+  assert.match(page, /https:\/\/tile\.openstreetmap\.org\/\{z\}\/\{x\}\/\{y\}\.png/);
   assert.match(page, /"source-layer": "roads"/);
   assert.match(page, /© OpenStreetMap contributors · Protomaps/);
   assert.doesNotMatch(page, /road road-one|road road-two/);

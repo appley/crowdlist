@@ -45,14 +45,16 @@ and current. Update existing sections instead of appending a task diary.
 
 ## Implemented Experience
 
-- Responsive, map-first MapLibre festival view with a local OSM/Protomaps
-  basemap, six geographically anchored stage markers, a clearly labeled seeded
-  crowd heatmap, and floating search and stage-detail surfaces.
+- Responsive, map-first MapLibre festival view with an OpenStreetMap street
+  layer and local OSM/Protomaps fallback, six geographically anchored stage
+  markers, a clearly labeled seeded crowd heatmap, and floating search and
+  stage-detail surfaces.
 - Now Playing details, crowd-verification threshold, live setlist views, stage
   search, a device-local day plan, and a bounded concierge experience.
 - User-initiated eight-second MediaRecorder capture with no continuous mic use.
-- Service-worker shell caching, offline state messaging, and device-local vote
-  and plan persistence.
+- Versioned, scope-safe service-worker shell caching, offline state messaging,
+  automatic refresh after deployments, and device-local vote and plan
+  persistence.
 - Server-only routes for JamBase event lookup, setlist.fm candidate generation,
   ACRCloud fingerprinting, GPT-5 structured resolution, and a tool-calling
   OpenAI concierge.

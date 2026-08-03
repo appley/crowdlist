@@ -20,6 +20,8 @@ import {
   Users,
   X,
 } from "lucide-react";
+import * as maplibregl from "maplibre-gl";
+import { FileSource, PMTiles, Protocol } from "pmtiles";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type Stage = {
@@ -129,24 +131,24 @@ type Tab = (typeof tabs)[number];
 
 function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: Stage) => void }) {
   const mapNode = useRef<HTMLDivElement>(null);
-  const liveMap = useRef<import("maplibre-gl").Map | null>(null);
+  const liveMap = useRef<maplibregl.Map | null>(null);
   const markerNodes = useRef(new Map<string, HTMLButtonElement>());
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!mapNode.current) return;
-    let map: import("maplibre-gl").Map | undefined;
+    let map: maplibregl.Map | undefined;
     let removeProtocol: (() => void) | undefined;
     let cancelled = false;
 
-    void Promise.all([import("maplibre-gl"), import("pmtiles")]).then(async ([maplibregl, pmtiles]) => {
+    void (async () => {
       const tileResponse = await fetch("/crowdsim/tiles/outside-lands.pmtiles");
       if (!tileResponse.ok) throw new Error("Basemap archive unavailable");
       const tileBlob = await tileResponse.blob();
       if (cancelled || !mapNode.current) return;
-      const protocol = new pmtiles.Protocol();
-      const tileFile = new File([tileBlob], "outside-lands.pmtiles");
-      protocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(tileFile)));
+      const protocol = new Protocol();
+      const tileFile = new File([tileBlob], "outside-lands");
+      protocol.add(new PMTiles(new FileSource(tileFile)));
       maplibregl.addProtocol("pmtiles", protocol.tile);
       removeProtocol = () => maplibregl.removeProtocol("pmtiles");
       const instance = new maplibregl.Map({
@@ -157,7 +159,15 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
         maxBounds: [[-122.524, 37.751], [-122.455, 37.788]],
         style: {
           version: 8,
-          sources: { protomaps: { type: "vector", url: "pmtiles://outside-lands" } },
+          sources: {
+            protomaps: { type: "vector", url: "pmtiles://outside-lands" },
+            openstreetmap: {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              maxzoom: 19,
+            },
+          },
           layers: [
             { id: "background", type: "background", paint: { "background-color": "#f3f4ef" } },
             { id: "earth", type: "fill", source: "protomaps", "source-layer": "earth", paint: { "fill-color": "#f3f4ef" } },
@@ -166,6 +176,7 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
             { id: "buildings", type: "fill", source: "protomaps", "source-layer": "buildings", paint: { "fill-color": "#e5e3dd", "fill-outline-color": "#d4d1c9", "fill-opacity": 0.92 } },
             { id: "road-casing", type: "line", source: "protomaps", "source-layer": "roads", paint: { "line-color": "#d3d0c8", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.8, 16, 7.2], "line-opacity": 0.78 } },
             { id: "roads", type: "line", source: "protomaps", "source-layer": "roads", paint: { "line-color": "#fffefa", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 5.2], "line-opacity": 0.98 } },
+            { id: "street-map", type: "raster", source: "openstreetmap", paint: { "raster-saturation": -0.34, "raster-contrast": -0.08, "raster-brightness-min": 0.08, "raster-brightness-max": 0.96 } },
           ],
         },
       });
@@ -181,7 +192,7 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
       instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
       instance.on("move", syncMarkers);
       instance.on("resize", syncMarkers);
-      instance.on("load", () => {
+      instance.on("style.load", () => {
         instance.addSource("crowds", {
           type: "geojson",
           data: {
@@ -216,7 +227,7 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
         syncMarkers();
         setMapStatus("ready");
       });
-    }).catch(() => { if (!cancelled) setMapStatus("error"); });
+    })().catch(() => { if (!cancelled) setMapStatus("error"); });
 
     return () => {
       cancelled = true;
@@ -268,7 +279,7 @@ export default function Home() {
   const [votes, setVotes] = useState<Record<string, number>>({ "lands-end": 3, "twin-peaks": 7, sutro: 2 });
   const [plans, setPlans] = useState<string[]>(["twin-peaks"]);
   const [toast, setToast] = useState("");
-  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
+  const [online, setOnline] = useState(true);
   const [question, setQuestion] = useState("");
   const [chat, setChat] = useState("Sutro is your best move: Doechii is on now, crowd level is comfortable, and it’s a 4-minute walk.");
   const [storageReady, setStorageReady] = useState(false);
@@ -278,9 +289,21 @@ export default function Home() {
   useEffect(() => {
     const on = () => setOnline(true);
     const off = () => setOnline(false);
+    const hadServiceWorker = "serviceWorker" in navigator && Boolean(navigator.serviceWorker.controller);
+    let refreshing = false;
+    const refreshForUpdate = () => {
+      if (hadServiceWorker && !refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+    const networkStatusTimer = window.setTimeout(() => setOnline(navigator.onLine), 0);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
-    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js");
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("controllerchange", refreshForUpdate);
+      void navigator.serviceWorker.register("/sw.js");
+    }
     try {
       const savedVotes = window.localStorage.getItem("crowdlist-votes");
       const savedPlans = window.localStorage.getItem("crowdlist-plan");
@@ -293,6 +316,8 @@ export default function Home() {
     return () => {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
+      window.clearTimeout(networkStatusTimer);
+      if ("serviceWorker" in navigator) navigator.serviceWorker.removeEventListener("controllerchange", refreshForUpdate);
     };
   }, []);
 

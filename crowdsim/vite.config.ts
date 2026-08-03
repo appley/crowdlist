@@ -14,14 +14,13 @@ function offlineServiceWorker(files: string[]) {
     "/crowdsim/tiles/outside-lands.pmtiles",
     ...files.map((file) => `/crowdsim/${file}`),
   ];
-  return `const CACHE = "crowdsim-v3";
+  return `const CACHE = "crowdsim-v4";
 const PRECACHE = ${JSON.stringify(precache.sort())};
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
-  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE && key.startsWith("crowdsim-")).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 self.addEventListener("fetch", (event) => {
