@@ -4,7 +4,7 @@
 Outside Lands hackathon. The product combines crowd density, Now Playing, and a
 rolling stage setlist powered by music recognition plus human agreement.
 
-This branch contains **Stage 1 only**:
+This branch contains **Stage 1 plus the first demo heatmap**:
 
 - Expo SDK 54 + React Native + TypeScript scaffold that runs in Expo Go.
 - A Sites-hosted D1 backend with a deliberately thin repository interface.
@@ -13,10 +13,12 @@ This branch contains **Stage 1 only**:
 - The official 2026 Friday schedule for seven Outside Lands stages.
 - Seed, crowd simulation, and combined reseed scripts.
 - A backend inspector page for verifying the seed and raw simulated records.
+- An Expo Go map that renders recent presence as per-stage crowd hotspots and
+  refreshes from the backend every 15 seconds.
 
-Map/location/audio, AudD, OpenAI normalization, nearest-stage logic, crowd-window
-aggregation, voting, promotion, and setlist transitions are intentionally not
-implemented until Stage 2 or Stage 3.
+Location heartbeat/audio, AudD, OpenAI normalization, nearest-stage assignment,
+voting, promotion, and setlist transitions are not implemented yet. The map
+currently visualizes seeded or simulated presence from the existing API.
 
 ## Why Expo SDK 54
 
@@ -78,8 +80,9 @@ reach, then run:
 npm run mobile
 ```
 
-Scan the QR code with Expo Go. The current mobile screen is intentionally a
-Stage 1 shell; it does not request location or audio permission yet.
+Scan the QR code with Expo Go. The app shows the seven stages and counts presence
+heartbeats updated within the last two minutes. It refreshes every 15 seconds.
+It does not request location or audio permission yet.
 
 ## Backend seam
 

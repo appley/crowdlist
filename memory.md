@@ -8,7 +8,8 @@ and current. Update existing sections instead of appending a task diary.
 - **Name:** CrowdList.
 - **Purpose:** A live crowd heatmap and real-time setlist experience for Outside
   Lands.
-- **Current status:** Stage 1 MVP data foundation is implemented on `pomme-v1`.
+- **Current status:** Stage 1 MVP data foundation and an Expo crowd heatmap are
+  implemented on `pomme-v1`.
 
 ## Product Decisions
 
@@ -32,11 +33,14 @@ and current. Update existing sections instead of appending a task diary.
 ## Stage 1 Repository State
 
 - The Expo application scaffold lives in `mobile/`.
+- The Expo map renders per-stage `<Circle>` overlays from presence heartbeats in
+  the latest two-minute window and refreshes every 15 seconds.
 - The D1 schema models stages, presence, now playing, proposals, and setlists.
 - `scripts/seed.ts` loads seven Outside Lands stages and 49 Friday lineup slots.
 - `scripts/simulate.ts` creates deterministic recent crowd-presence records.
 - `scripts/reseed.ts` resets seed and simulation state together.
-- Stage 2 logic and Stage 3 product UI are intentionally not implemented yet.
+- Location heartbeat and the remaining Stage 2 logic and Stage 3 product UI are
+  not implemented yet.
 
 ## Verification
 
@@ -44,6 +48,7 @@ and current. Update existing sections instead of appending a task diary.
 - `npm run test:stage1` verifies seven stages, 49 lineup slots, and simulated
   presence across all seven stages.
 - `npm run mobile:check` type-checks the Expo application.
+- `npm run test:heatmap` verifies the two-minute active-crowd window.
 
 ## Memory Maintenance
 
