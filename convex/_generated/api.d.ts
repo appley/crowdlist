@@ -14,6 +14,7 @@ import type * as demo from "../demo.js";
 import type * as fixtures from "../fixtures.js";
 import type * as jambase from "../jambase.js";
 import type * as openai from "../openai.js";
+import type * as presence from "../presence.js";
 import type * as pulseModel from "../pulseModel.js";
 import type * as pulses from "../pulses.js";
 import type * as reports from "../reports.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   fixtures: typeof fixtures;
   jambase: typeof jambase;
   openai: typeof openai;
+  presence: typeof presence;
   pulseModel: typeof pulseModel;
   pulses: typeof pulses;
   reports: typeof reports;

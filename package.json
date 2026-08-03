@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "activity:build": "node scripts/build-activity.mjs",
     "dev": "vinext dev --hostname 0.0.0.0",
-    "build": "vinext build && tsc -b && mkdir -p dist/.openai && cp .openai/hosting.json dist/.openai/hosting.json",
+    "build": "node scripts/build-activity.mjs --check && vinext build && tsc -b && mkdir -p dist/.openai && cp .openai/hosting.json dist/.openai/hosting.json",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",

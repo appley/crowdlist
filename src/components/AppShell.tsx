@@ -1,5 +1,8 @@
+import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DEMO_LOCATION, DEMO_NOW, STAGES } from "../data/festival";
+import { ACTIVITY_PORTRAIT } from "../data/activity";
+import { DEMO_LOCATION, STAGES } from "../data/festival";
+import { activityPointsFromFrame, mergeActivityPulses } from "../lib/activity";
 import { getAnonymousId } from "../lib/identity";
 import { hasWebGl } from "../lib/webgl";
 import type { FestivalDataSource, ReportInput } from "../types";
@@ -25,7 +28,20 @@ function isOnFestivalMap([longitude, latitude]: [number, number]) {
     latitude >= FESTIVAL_BOUNDS.south && latitude <= FESTIVAL_BOUNDS.north;
 }
 
-export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShellProps) {
+const PRESENCE_GRID_DEGREES = 0.0006;
+
+function coarsePresenceCoordinate(value: number) {
+  return Math.round(value / PRESENCE_GRID_DEGREES) * PRESENCE_GRID_DEGREES;
+}
+
+export function AppShell({
+  pulses,
+  presenceCells = [],
+  status,
+  submitReport,
+  submitPresence,
+  recognizeSong,
+}: AppShellProps) {
   const [selectedStageId, setSelectedStageId] = useState("sutro");
   const [reportOpen, setReportOpen] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -33,6 +49,8 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [recenterToken, setRecenterToken] = useState(0);
+  const [activityFrameIndex, setActivityFrameIndex] = useState(0);
+  const [activityPlaying, setActivityPlaying] = useState(true);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "info" } | null>(null);
   const anonId = useMemo(() => getAnonymousId(), []);
   const mapSupported = useMemo(() => {
@@ -41,8 +59,29 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
   }, []);
 
   const selectedStage = STAGES.find((stage) => stage.id === selectedStageId) ?? STAGES[0];
+  const activityFrame = ACTIVITY_PORTRAIT.frames[activityFrameIndex] ?? ACTIVITY_PORTRAIT.frames[0];
+  const effectivePulses = useMemo(
+    () => mergeActivityPulses(pulses, activityFrame),
+    [activityFrame, pulses],
+  );
+  const activityPoints = useMemo(() => [
+    ...activityPointsFromFrame(activityFrame),
+    ...presenceCells.map((cell) => ({
+      coordinates: [cell.longitude, cell.latitude] as [number, number],
+      weight: Math.min(1.25, 0.72 + cell.count * 0.13),
+      contributors: cell.count,
+    })),
+  ], [activityFrame, presenceCells]);
   const selectedPulse =
-    pulses.find((pulse) => pulse.stageId === selectedStage.id) ?? pulses[0];
+    effectivePulses.find((pulse) => pulse.stageId === selectedStage.id) ?? effectivePulses[0];
+
+  useEffect(() => {
+    if (!activityPlaying || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const interval = window.setInterval(() => {
+      setActivityFrameIndex((index) => (index + 1) % ACTIVITY_PORTRAIT.frames.length);
+    }, ACTIVITY_PORTRAIT.meta.frameDurationMs);
+    return () => window.clearInterval(interval);
+  }, [activityPlaying]);
 
   useEffect(() => {
     if (!toast) return;
@@ -85,6 +124,17 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
         setLocationLabel("You are here");
         setLocationDenied(false);
         setLocating(false);
+        if (submitPresence) {
+          void submitPresence({
+            anonId,
+            longitude: coarsePresenceCoordinate(coords.longitude),
+            latitude: coarsePresenceCoordinate(coords.latitude),
+          }).then(() => {
+            setToast({ message: "Your anonymous coarse signal is live for two minutes.", tone: "success" });
+          }).catch(() => {
+            setToast({ message: "Location stayed on your phone. The map still works.", tone: "info" });
+          });
+        }
       },
       () => {
         setLocationDenied(true);
@@ -93,7 +143,7 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
       },
       { enableHighAccuracy: true, timeout: 9000, maximumAge: 30_000 },
     );
-  }, []);
+  }, [anonId, submitPresence]);
 
   const sendReport = useCallback(
     async (input: ReportInput) => {
@@ -117,7 +167,8 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
       {mapSupported ? (
         <>
           <CrowdMap
-            pulses={pulses}
+            pulses={effectivePulses}
+            activityPoints={activityPoints}
             selectedStageId={selectedStage.id}
             onSelectStage={setSelectedStageId}
             userLocation={userLocation}
@@ -128,23 +179,31 @@ export function AppShell({ pulses, status, submitReport, recognizeSong }: AppShe
         </>
       ) : (
         <StageList
-          pulses={pulses}
+          pulses={effectivePulses}
           selectedStageId={selectedStage.id}
           onSelectStage={setSelectedStageId}
         />
       )}
       <MapHeader status={status} />
-      <div className="demo-clock" aria-label="Demonstration time">
+      <button
+        className="demo-clock"
+        type="button"
+        onClick={() => setActivityPlaying((playing) => !playing)}
+        aria-label={`${activityPlaying ? "Pause" : "Play"} simulated festival activity`}
+      >
         <span>FRI</span>
         <strong>
           {new Intl.DateTimeFormat("en-US", {
             hour: "numeric",
             minute: "2-digit",
             timeZone: "America/Los_Angeles",
-          }).format(DEMO_NOW)}
+          }).format(new Date(activityFrame.at))}
         </strong>
-        <span>PT</span>
-      </div>
+        <span className="demo-clock__control">
+          {activityPlaying ? <Pause size={11} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
+          {activityPlaying ? "LIVE" : "PAUSED"}
+        </span>
+      </button>
       {mapSupported ? (
         <>
           <MapControls

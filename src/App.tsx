@@ -4,7 +4,7 @@ import { api } from "../convex/_generated/api";
 import { AppShell } from "./components/AppShell";
 import { INITIAL_PULSES } from "./data/festival";
 import { applyFixtureReport } from "./lib/pulse";
-import type { ReportInput, SongRecognitionInput, SongRecognitionResponse, StagePulse } from "./types";
+import type { PresenceInput, ReportInput, SongRecognitionInput, SongRecognitionResponse, StagePulse } from "./types";
 
 export function FixtureApp({ degraded = false }: { degraded?: boolean }) {
   const [pulses, setPulses] = useState<StagePulse[]>(INITIAL_PULSES);
@@ -33,6 +33,7 @@ export function ConnectedApp() {
   const bootstrap = useQuery(api.bootstrap.get);
   const ensureBootstrap = useMutation(api.bootstrap.ensure);
   const submitMutation = useMutation(api.reports.submit);
+  const presenceMutation = useMutation(api.presence.ping);
   const identifySong = useAction(api.acrcloud.identify);
 
   useEffect(() => {
@@ -52,11 +53,20 @@ export function ConnectedApp() {
     [identifySong],
   );
 
+  const submitPresence = useCallback(
+    async (input: PresenceInput) => {
+      await presenceMutation(input);
+    },
+    [presenceMutation],
+  );
+
   return (
     <AppShell
       pulses={(bootstrap?.pulses as StagePulse[] | undefined) ?? INITIAL_PULSES}
+      presenceCells={bootstrap?.presenceCells ?? []}
       status={bootstrap === undefined ? "connecting" : bootstrap === null ? "fixture" : "live"}
       submitReport={submitReport}
+      submitPresence={submitPresence}
       recognizeSong={recognizeSong}
     />
   );

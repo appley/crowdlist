@@ -44,6 +44,14 @@ export default defineSchema({
     .index("by_anon_created", ["anonId", "createdAt"])
     .index("by_stage_created", ["stageId", "createdAt"]),
 
+  presence: defineTable({
+    anonId: v.string(),
+    cellId: v.string(),
+    longitude: v.number(),
+    latitude: v.number(),
+    updatedAt: v.number(),
+  }).index("by_anon", ["anonId"]),
+
   jambaseArtists: defineTable({
     jambaseId: v.string(),
     eventId: v.string(),

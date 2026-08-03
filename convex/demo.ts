@@ -6,6 +6,7 @@ export const reset = internalMutation({
   handler: async (ctx) => {
     for (const report of await ctx.db.query("reports").collect()) await ctx.db.delete(report._id);
     for (const pulse of await ctx.db.query("pulses").collect()) await ctx.db.delete(pulse._id);
+    for (const presence of await ctx.db.query("presence").collect()) await ctx.db.delete(presence._id);
     const now = Date.now();
     for (const pulse of DEMO_PULSES) {
       const { freshnessMinutes, ...values } = pulse;

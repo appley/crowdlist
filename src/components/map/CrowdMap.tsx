@@ -6,12 +6,13 @@ import { STAGES } from "../../data/festival";
 import { GROUNDS_BOUNDS, ZONE_LABELS } from "../../data/zones";
 import { CROWD_VALUE } from "../../lib/pulse";
 import { createStyle } from "../../lib/mapStyle";
-import type { Stage, StagePulse } from "../../types";
+import type { ActivityPoint, Stage, StagePulse } from "../../types";
 
 maplibregl.setWorkerUrl(mapLibreWorkerUrl);
 
 interface CrowdMapProps {
   pulses: StagePulse[];
+  activityPoints: ActivityPoint[];
   selectedStageId: string;
   onSelectStage: (stageId: string) => void;
   userLocation: [number, number] | null;
@@ -19,25 +20,41 @@ interface CrowdMapProps {
   recenterToken: number;
 }
 
-function activityGeoJson(pulses: StagePulse[]) {
+function activityGeoJson(pulses: StagePulse[], activityPoints: ActivityPoint[]) {
   const pulseByStage = new Map(pulses.map((pulse) => [pulse.stageId, pulse]));
   return {
     type: "FeatureCollection" as const,
-    features: STAGES.map((stage) => {
-      const pulse = pulseByStage.get(stage.id);
-      return {
+    features: [
+      ...activityPoints.map((point, index) => ({
         type: "Feature" as const,
+        id: `activity-${index}`,
         properties: {
-          stageId: stage.id,
-          weight: pulse ? CROWD_VALUE[pulse.crowd] : 1,
-          crowd: pulse?.crowd ?? "easy",
+          kind: "activity-cell",
+          weight: point.weight,
+          contributors: point.contributors,
         },
         geometry: {
           type: "Point" as const,
-          coordinates: stage.coordinates,
+          coordinates: point.coordinates,
         },
-      };
-    }),
+      })),
+      ...STAGES.map((stage) => {
+        const pulse = pulseByStage.get(stage.id);
+        return {
+          type: "Feature" as const,
+          properties: {
+            kind: "stage",
+            stageId: stage.id,
+            weight: 0.42 + (pulse ? CROWD_VALUE[pulse.crowd] : 1) * 0.2,
+            crowd: pulse?.crowd ?? "easy",
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: stage.coordinates,
+          },
+        };
+      }),
+    ],
   };
 }
 
@@ -89,6 +106,7 @@ function makeStageMarker(
 
 export function CrowdMap({
   pulses,
+  activityPoints,
   selectedStageId,
   onSelectStage,
   userLocation,
@@ -108,7 +126,7 @@ export function CrowdMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const style = createStyle(activityGeoJson(pulses));
+    const style = createStyle(activityGeoJson(pulses, activityPoints));
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -167,7 +185,7 @@ export function CrowdMap({
     const map = mapRef.current;
     if (!map?.isStyleLoaded()) return;
     const source = map.getSource("activity") as GeoJSONSource | undefined;
-    source?.setData(activityGeoJson(pulses));
+    source?.setData(activityGeoJson(pulses, activityPoints));
 
     const pulseByStage = new Map(pulses.map((pulse) => [pulse.stageId, pulse]));
     for (const [stageId, marker] of stageMarkersRef.current) {
@@ -184,7 +202,7 @@ export function CrowdMap({
         );
       }
     }
-  }, [pulses, selectedStageId]);
+  }, [activityPoints, pulses, selectedStageId]);
 
   useEffect(() => {
     const map = mapRef.current;

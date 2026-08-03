@@ -11,9 +11,13 @@ the Outside Lands app's Experiences gallery.
 V1 ships one complete loop:
 
 - Open directly onto the official 2026 patron map.
-- See seven stages with seeded or live crowd-comfort and energy pulses.
+- See seven stages inside a deterministic, moving festival activity portrait.
+- Watch a clearly labeled simulated baseline flow along park paths while live
+  community reports override the affected stage in realtime.
 - Tap a stage for JamBase-linked `now` and `next` context.
 - Locate yourself through browser geolocation or a labeled demo location.
+- When explicitly located on the grounds, contribute only one coarse live cell
+  for two minutes; exact coordinates and movement history are never stored.
 - Submit a quick fan observation and watch the map update in realtime.
 - Use OpenAI to turn optional natural-language detail into a validated live
   signal; chip-only reporting still works without AI.
@@ -34,6 +38,8 @@ are deliberately excluded from the first build.
 - An OpenAI Sites-compatible React and TypeScript project
 - MapLibre GL JS drawing Golden Gate Park from OpenStreetMap geometry, colored
   and labeled after the official patron map rather than rasterizing it
+- A compact build-time activity generator: 24 privacy-thresholded frames ship
+  in 85 KB instead of running a heavy crowd simulation on each fan's phone
 - Convex as the external backend for reports, stage pulses, OpenAI actions, and
   demo state
 - JamBase REST API imported and cached server-side
@@ -93,5 +99,8 @@ rebuilds `data/ol26/ggp-base.json` from OpenStreetMap, and
 `node scripts/build-zones.mjs` rebuilds the festival zone polygons and checks
 that every stage point still sits inside the zone its sheet names. Both are
 build-time only; the app ships the generated files.
+`bun run activity:build` deterministically regenerates the simulated activity
+portrait. Every emitted cell represents at least five simulated contributors,
+and the UI always identifies the portrait as simulated rather than measured.
 Run `bun run check` before publishing. Server secrets belong in the Convex
 deployment; only `VITE_CONVEX_URL` is supplied to the Sites build.

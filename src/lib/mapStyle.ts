@@ -131,10 +131,10 @@ export function createStyle(activity: GeoJSON.FeatureCollection): StyleSpecifica
         source: "activity",
         maxzoom: 18,
         paint: {
-          "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 1, 0.25, 4, 1],
-          "heatmap-intensity": 0.85,
-          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 13, 26, 16, 68],
-          "heatmap-opacity": 0.5,
+          "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1.25, 1],
+          "heatmap-intensity": 0.92,
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 13, 19, 16, 48],
+          "heatmap-opacity": 0.56,
           "heatmap-color": [
             "interpolate",
             ["linear"],

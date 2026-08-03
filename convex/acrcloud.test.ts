@@ -56,6 +56,8 @@ describe("ACRCloud Identify Protocol V1", () => {
     })).toMatchObject({ status: "match", match: { title: "Wrapped" } });
 
     expect(parseAcrcloudResponse({ status: { code: 1001 } })).toEqual({ status: "no_match" });
+    expect(parseAcrcloudResponse({ status: { code: 2004, msg: "Can't generate fingerprint" } }))
+      .toEqual({ status: "no_match" });
   });
 
   it("does not expose upstream error details", () => {

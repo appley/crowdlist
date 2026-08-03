@@ -95,7 +95,9 @@ export function parseAcrcloudResponse(payload: unknown): ParsedAcrcloudResponse 
   const rawStatus = payload.status;
   const status = isRecord(rawStatus) ? rawStatus : {};
   const statusCode = typeof status.code === "number" ? status.code : Number(status.code);
-  if (statusCode === 1001) return { status: "no_match" };
+  // 1001 means no result; 2004 means the clip was too weak/noisy to produce a
+  // fingerprint. Both are retryable sample outcomes, not service outages.
+  if (statusCode === 1001 || statusCode === 2004) return { status: "no_match" };
   if (statusCode !== 0) {
     return { status: "error", message: "Song recognition is temporarily unavailable." };
   }
@@ -157,6 +159,7 @@ function decodeBase64(value: string) {
 function filenameForMimeType(mimeType: string) {
   if (mimeType.includes("ogg")) return "festival-sample.ogg";
   if (mimeType.includes("mp4") || mimeType.includes("m4a")) return "festival-sample.m4a";
+  if (mimeType.includes("wav")) return "festival-sample.wav";
   return "festival-sample.webm";
 }
 

@@ -5,10 +5,10 @@ interface MapHeaderProps {
 }
 
 const STATUS_LABEL = {
-  connecting: "Connecting",
-  live: "Live reports",
-  fixture: "Demo live",
-  degraded: "Fixture backup",
+  connecting: "Syncing live",
+  live: "Sim + live",
+  fixture: "Simulated demo",
+  degraded: "Demo backup",
 };
 
 export function MapHeader({ status }: MapHeaderProps) {

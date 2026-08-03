@@ -244,6 +244,19 @@ textarea:focus-visible {
   background: rgba(16, 41, 31, 0.78);
   box-shadow: 0 6px 22px rgba(17, 48, 35, 0.18);
   backdrop-filter: blur(10px);
+  font: inherit;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.demo-clock:hover {
+  background: rgba(16, 41, 31, 0.9);
+  transform: translateY(-1px);
+}
+
+.demo-clock:focus-visible {
+  outline: 3px solid rgba(223, 255, 67, 0.8);
+  outline-offset: 2px;
 }
 
 .demo-clock span {
@@ -254,6 +267,14 @@ textarea:focus-visible {
 
 .demo-clock strong {
   font-size: 12px;
+}
+
+.demo-clock .demo-clock__control {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--lime);
+  font-weight: 800;
 }
 
 .map-controls {
@@ -1093,7 +1114,8 @@ textarea:focus-visible {
 .toast {
   position: absolute;
   z-index: 130;
-  top: max(84px, calc(env(safe-area-inset-top) + 70px));
+  top: auto;
+  bottom: min(47vh, 390px);
   left: 50%;
   display: flex;
   width: min(calc(100% - 30px), 430px);
@@ -1196,6 +1218,11 @@ textarea:focus-visible {
   .map-attribution {
     right: 482px;
     bottom: 24px;
+  }
+
+  .toast {
+    top: max(84px, calc(env(safe-area-inset-top) + 70px));
+    bottom: auto;
   }
 
   .dialog-backdrop {

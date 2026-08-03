@@ -20,6 +20,11 @@ const TrendIcon = {
 export function StagePulseSheet({ stage, pulse, onReport, recognizeSong }: StagePulseSheetProps) {
   const schedule = scheduleAt(stage.id);
   const Icon = TrendIcon[pulse.trend];
+  const communityReportCount = pulse.source === "mixed"
+    ? Math.max(1, pulse.reportCount - (pulse.baselineCount ?? pulse.reportCount - 1))
+    : pulse.source === "community"
+      ? pulse.reportCount
+      : 0;
 
   return (
     <section className="stage-sheet" aria-label={`${stage.name} live activity`}>
@@ -85,7 +90,11 @@ export function StagePulseSheet({ stage, pulse, onReport, recognizeSong }: Stage
       <div className="stage-sheet__footer">
         <div className="report-proof">
           <MessageCircleMore size={16} aria-hidden="true" />
-          <span>{pulse.reportCount} fresh fan pulses</span>
+          <span>
+            {communityReportCount > 0
+              ? `${communityReportCount} live fan ${communityReportCount === 1 ? "pulse" : "pulses"}`
+              : "Simulated festival baseline"}
+          </span>
           <span aria-hidden="true">·</span>
           <a href="https://data.jambase.com/outsidellms" target="_blank" rel="noreferrer">Lineup by JamBase</a>
           <span aria-hidden="true">·</span>

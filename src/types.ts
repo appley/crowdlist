@@ -18,8 +18,53 @@ export interface StagePulse {
   reportCount: number;
   freshnessMinutes: number;
   updatedAt?: number;
+  baselineCount?: number;
   source?: "seeded-demo" | "community" | "mixed";
   summary?: string;
+}
+
+export interface ActivityPoint {
+  coordinates: [number, number];
+  weight: number;
+  contributors: number;
+}
+
+export interface ActivityStageState {
+  stageId: string;
+  crowd: CrowdLevel;
+  energy: EnergyLevel;
+  trend: Trend;
+}
+
+export interface ActivityFrame {
+  at: string;
+  points: [longitude: number, latitude: number, weight: number, contributors: number][];
+  stages: ActivityStageState[];
+}
+
+export interface ActivityPortrait {
+  meta: {
+    source: "simulated";
+    label: string;
+    seed: number;
+    frameDurationMs: number;
+    kAnonymity: number;
+    generatedAt: string;
+  };
+  frames: ActivityFrame[];
+}
+
+export interface PresenceCell {
+  cellId: string;
+  longitude: number;
+  latitude: number;
+  count: number;
+}
+
+export interface PresenceInput {
+  anonId: string;
+  longitude: number;
+  latitude: number;
 }
 
 export interface Performance {
@@ -67,7 +112,9 @@ export interface SongRecognitionInput {
 
 export interface FestivalDataSource {
   pulses: StagePulse[];
+  presenceCells?: PresenceCell[];
   status: "connecting" | "live" | "fixture" | "degraded";
   submitReport: (input: ReportInput) => Promise<void>;
+  submitPresence?: (input: PresenceInput) => Promise<void>;
   recognizeSong?: (input: SongRecognitionInput) => Promise<SongRecognitionResponse>;
 }

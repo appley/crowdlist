@@ -115,11 +115,12 @@ no landing page, account wall, preference quiz, or chat greeting.
 
 On first render:
 
-1. Show the festival map and seeded stage pulses immediately.
+1. Show the festival map and its deterministic moving activity portrait immediately.
 2. Fit the camera to the festival grounds.
 3. Show a compact legend explaining activity color and freshness.
 4. Keep location permission unrequested until the user taps the location button.
-5. Offer a small `Demo live` badge when fixture mode is active.
+5. Label fixture data as `Simulated demo`; use `Sim + live` when community
+   reports or coarse live presence are also contributing.
 
 ### 4.2 Map interaction
 
@@ -354,8 +355,9 @@ V1 intentionally has no general assistant. `Ask CrowdList` is V2.
 
 ### 9.1 Pulse calculation
 
-A stage pulse combines a seeded demo baseline and recent reports for the
-selected stage. A simple deterministic calculation is sufficient:
+A stage pulse combines the current frame of a deterministic demo baseline and
+recent reports for the selected stage. Community reports override the simulated
+stage state. A simple deterministic calculation is sufficient:
 
 - Reports younger than 5 minutes have weight `1.0`.
 - Reports 5–15 minutes old have weight `0.6`.
@@ -384,16 +386,20 @@ Optimistic UI is acceptable if failure is surfaced and rolled back.
 
 ### 9.3 Demo state
 
-The repository includes deterministic fixtures for all seven stages. At least
-three visibly different states are present:
+The repository includes a compact, deterministic, time-varying activity
+portrait for all seven stages and the walking corridors between them. It loops
+locally, requires no runtime generator, and includes at least three visibly
+different states:
 
 - Comfortable and chill.
 - Busy and building.
 - Packed and electric.
 
-Submitting the scripted demo report to Sutro must move it to a visibly stronger
-state. A development-only reset action restores the fixture. Demo controls must
-not appear in the public production UI beyond the `Demo live` disclosure.
+Submitting the scripted demo report to Sutro must replace its simulated state
+with a visibly stronger live state. A development-only reset action restores
+the fixture. A small play/pause control may freeze the demo clock for judging;
+the public UI must always disclose whether signals are simulated, live, or
+mixed.
 
 ## 10. Data contracts
 
@@ -651,7 +657,7 @@ scope.
    - Process and georeference the official map asset.
    - Author and load the seven-point stage GeoJSON from the official PDF.
 3. **Fixture-backed product loop**
-   - Load now/next snippets and seeded pulses.
+   - Load now/next snippets and the deterministic activity portrait.
    - Render stage activity states.
    - Implement the Stage Pulse sheet.
 4. **Location**
@@ -688,7 +694,8 @@ V1 is demo-ready only when all of these are true:
 - [ ] The approved 2026 Outside Lands map is visible and readable.
 - [ ] All seven hotspots load from the team-authored
       `data/ol26/stages.geojson` and are tappable.
-- [ ] At least three seeded stage activity states are visually distinct.
+- [ ] The simulated portrait animates spatial cells and at least three stage
+      activity states are visually distinct.
 - [ ] A stage sheet shows only now/next, pulse, freshness, reports, and attribution.
 - [ ] Location appears after a user action in browser mode.
 - [ ] Demo location works without requesting permission and is clearly labeled.
@@ -700,7 +707,8 @@ V1 is demo-ready only when all of these are true:
       seconds under normal demo conditions.
 - [ ] Two clients opened on the deployed OpenAI Site observe the same stage
       update through the selected Convex transport.
-- [ ] No raw or historical user location is sent to the server.
+- [ ] Exact user location never leaves the device; the optional live presence
+      signal sends only a coarse cell and stores no movement history.
 - [ ] JamBase-backed data is cached and visibly attributed.
 - [ ] Fixture mode works with no sponsor or AI credentials.
 - [ ] The OpenAI Sites URL works in the OutsideLLMS/Outside Lands in-app webview
