@@ -371,6 +371,7 @@ export function CrowdListWebApp({
               priority
               sizes="(max-width: 980px) 100vw, 68vw"
               src="/maps/ol26-patron-map.webp"
+              unoptimized
             />
             <div className="map-wash" />
             {snapshot.stages.map((stage) => {
