@@ -1,0 +1,22 @@
+{
+  "id": "outside-lands-2026",
+  "name": "Outside Lands 2026",
+  "shortName": "Outside Lands",
+  "dates": ["2026-08-07", "2026-08-08", "2026-08-09"],
+  "timezone": "America/Los_Angeles",
+  "location": "Golden Gate Park, San Francisco",
+  "demoNow": "2026-08-07T18:50:00-07:00",
+  "jambaseFestivalSeriesId": "jambase:13969984",
+  "jambaseEventId": "jambase:15738826",
+  "map": {
+    "image": "/maps/ol26-patron-map.webp",
+    "source": "https://sfoutsidelands.com/assets/maps/ol26-patron-map_73026.pdf",
+    "coordinates": [
+      [-122.5185, 37.7746],
+      [-122.4511, 37.7746],
+      [-122.4511, 37.7644],
+      [-122.5185, 37.7644]
+    ]
+  },
+  "demoLocation": [-122.4865, 37.7688]
+}
