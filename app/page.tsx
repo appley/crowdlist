@@ -33,7 +33,7 @@ type Stage = {
   confidence: "High" | "Medium";
   walk: number;
   color: string;
-  position: [number, number];
+  coordinates: [number, number];
   history: string[];
 };
 
@@ -49,7 +49,7 @@ const stages: Stage[] = [
     confidence: "High",
     walk: 9,
     color: "#ff6048",
-    position: [23, 29],
+    coordinates: [-122.4926, 37.7687],
     history: ["WUSYANAME", "See You Again", "NEW MAGIC WAND"],
   },
   {
@@ -63,7 +63,7 @@ const stages: Stage[] = [
     confidence: "High",
     walk: 6,
     color: "#ff3e8a",
-    position: [72, 24],
+    coordinates: [-122.4838, 37.7696],
     history: ["360", "Club classics", "Talk talk"],
   },
   {
@@ -77,7 +77,7 @@ const stages: Stage[] = [
     confidence: "High",
     walk: 4,
     color: "#ffb347",
-    position: [48, 48],
+    coordinates: [-122.4868, 37.7711],
     history: ["NISSAN ALTIMA", "Alter Ego", "What It Is"],
   },
   {
@@ -91,7 +91,7 @@ const stages: Stage[] = [
     confidence: "Medium",
     walk: 12,
     color: "#67d997",
-    position: [30, 70],
+    coordinates: [-122.4817, 37.7702],
     history: ["Am I Wrong", "Tints", "Make It Better"],
   },
   {
@@ -105,7 +105,7 @@ const stages: Stage[] = [
     confidence: "Medium",
     walk: 8,
     color: "#6fc3ff",
-    position: [69, 67],
+    coordinates: [-122.489, 37.7674],
     history: ["Harmony Hall", "Diane Young", "Oxford Comma"],
   },
   {
@@ -119,7 +119,7 @@ const stages: Stage[] = [
     confidence: "Medium",
     walk: 10,
     color: "#a889ff",
-    position: [48, 84],
+    coordinates: [-122.4777, 37.7719],
     history: ["Vocoder", "Problems", "LesAlpx"],
   },
 ];
@@ -129,53 +129,59 @@ type Tab = (typeof tabs)[number];
 
 function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: Stage) => void }) {
   const mapNode = useRef<HTMLDivElement>(null);
+  const liveMap = useRef<import("maplibre-gl").Map | null>(null);
+  const markerNodes = useRef(new Map<string, HTMLButtonElement>());
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!mapNode.current) return;
     let map: import("maplibre-gl").Map | undefined;
+    let removeProtocol: (() => void) | undefined;
     let cancelled = false;
 
-    void import("maplibre-gl").then((maplibregl) => {
+    void Promise.all([import("maplibre-gl"), import("pmtiles")]).then(async ([maplibregl, pmtiles]) => {
+      const tileResponse = await fetch("/crowdsim/tiles/outside-lands.pmtiles");
+      if (!tileResponse.ok) throw new Error("Basemap archive unavailable");
+      const tileBlob = await tileResponse.blob();
       if (cancelled || !mapNode.current) return;
+      const protocol = new pmtiles.Protocol();
+      const tileFile = new File([tileBlob], "outside-lands.pmtiles");
+      protocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(tileFile)));
+      maplibregl.addProtocol("pmtiles", protocol.tile);
+      removeProtocol = () => maplibregl.removeProtocol("pmtiles");
       const instance = new maplibregl.Map({
         container: mapNode.current,
-        center: [-122.494, 37.768],
-        zoom: 14.5,
+        center: [-122.4905, 37.7692],
+        zoom: 14.75,
         attributionControl: false,
-        interactive: false,
+        maxBounds: [[-122.524, 37.751], [-122.455, 37.788]],
         style: {
           version: 8,
-          sources: {},
-          layers: [{ id: "park", type: "background", paint: { "background-color": "#d9e4d4" } }],
+          sources: { protomaps: { type: "vector", url: "pmtiles://outside-lands" } },
+          layers: [
+            { id: "background", type: "background", paint: { "background-color": "#f3f4ef" } },
+            { id: "earth", type: "fill", source: "protomaps", "source-layer": "earth", paint: { "fill-color": "#f3f4ef" } },
+            { id: "water", type: "fill", source: "protomaps", "source-layer": "water", paint: { "fill-color": "#b9dded" } },
+            { id: "landuse", type: "fill", source: "protomaps", "source-layer": "landuse", paint: { "fill-color": "#d9e8d2", "fill-opacity": 0.92 } },
+            { id: "buildings", type: "fill", source: "protomaps", "source-layer": "buildings", paint: { "fill-color": "#e5e3dd", "fill-outline-color": "#d4d1c9", "fill-opacity": 0.92 } },
+            { id: "road-casing", type: "line", source: "protomaps", "source-layer": "roads", paint: { "line-color": "#d3d0c8", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.8, 16, 7.2], "line-opacity": 0.78 } },
+            { id: "roads", type: "line", source: "protomaps", "source-layer": "roads", paint: { "line-color": "#fffefa", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 5.2], "line-opacity": 0.98 } },
+          ],
         },
       });
       map = instance;
+      liveMap.current = instance;
+      const syncMarkers = () => {
+        for (const stage of stages) {
+          const point = instance.project(stage.coordinates);
+          const marker = markerNodes.current.get(stage.id);
+          if (marker) marker.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
+        }
+      };
+      instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+      instance.on("move", syncMarkers);
+      instance.on("resize", syncMarkers);
       instance.on("load", () => {
-        instance.addSource("festival-shape", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "Polygon",
-                  coordinates: [[
-                    [-122.512, 37.763], [-122.507, 37.775], [-122.477, 37.775],
-                    [-122.475, 37.764], [-122.489, 37.758], [-122.512, 37.763],
-                  ]],
-                },
-              },
-            ],
-          },
-        });
-        instance.addLayer({
-          id: "grounds",
-          type: "fill",
-          source: "festival-shape",
-          paint: { "fill-color": "#c5d4bd", "fill-outline-color": "#94aa8e" },
-        });
         instance.addSource("crowds", {
           type: "geojson",
           data: {
@@ -185,7 +191,7 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
               properties: { weight: stage.crowd / 100 },
               geometry: {
                 type: "Point",
-                coordinates: [-122.507 + (stage.position[0] / 100) * 0.028, 37.775 - (stage.position[1] / 100) * 0.016],
+                coordinates: stage.coordinates,
               },
               id: i,
             })),
@@ -207,12 +213,16 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
             ],
           },
         });
+        syncMarkers();
+        setMapStatus("ready");
       });
-    });
+    }).catch(() => { if (!cancelled) setMapStatus("error"); });
 
     return () => {
       cancelled = true;
+      liveMap.current = null;
       map?.remove();
+      removeProtocol?.();
     };
   }, []);
 
@@ -220,14 +230,15 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
     <div className="map-canvas" aria-label="Festival crowd map">
       <div ref={mapNode} className="maplibre-host" />
       <div className="map-grain" />
-      <div className="road road-one" />
-      <div className="road road-two" />
-      <span className="park-label">GOLDEN GATE PARK</span>
+      {mapStatus === "loading" && <div className="map-loading"><span /> Loading festival map…</div>}
+      {mapStatus === "error" && <div className="map-loading error">Map unavailable · stage data is still available</div>}
+      <div className="map-context"><small>OUTSIDE LANDS · SUNDAY</small><strong>Golden Gate Park</strong><span><i /> 6 stages reporting live</span></div>
       {stages.map((stage) => (
         <button
           key={stage.id}
+          ref={(node) => { if (node) markerNodes.current.set(stage.id, node); else markerNodes.current.delete(stage.id); }}
           className={`stage-marker ${selected.id === stage.id ? "selected" : ""}`}
-          style={{ left: `${stage.position[0]}%`, top: `${stage.position[1]}%`, "--stage": stage.color } as React.CSSProperties}
+          style={{ "--stage": stage.color } as React.CSSProperties}
           onClick={() => onSelect(stage)}
           aria-label={`${stage.name}, ${stage.crowd}% crowd, ${stage.artist} playing`}
         >
@@ -236,7 +247,11 @@ function CrowdMap({ selected, onSelect }: { selected: Stage; onSelect: (stage: S
           <span className="marker-label"><strong>{stage.name}</strong><small>{stage.crowd}% full</small></span>
         </button>
       ))}
+      <div className="map-actions">
+        <button onClick={() => liveMap.current?.easeTo({ center: [-122.4905, 37.7692], zoom: 14.75, duration: 650 })} aria-label="Center map on the festival"><LocateFixed /></button>
+      </div>
       <div className="map-key"><span /><span /><span /> Quiet <b>→</b> Packed</div>
+      <div className="map-attribution">© OpenStreetMap contributors · Protomaps</div>
     </div>
   );
 }
@@ -253,7 +268,7 @@ export default function Home() {
   const [votes, setVotes] = useState<Record<string, number>>({ "lands-end": 3, "twin-peaks": 7, sutro: 2 });
   const [plans, setPlans] = useState<string[]>(["twin-peaks"]);
   const [toast, setToast] = useState("");
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
   const [question, setQuestion] = useState("");
   const [chat, setChat] = useState("Sutro is your best move: Doechii is on now, crowd level is comfortable, and it’s a 4-minute walk.");
   const [storageReady, setStorageReady] = useState(false);
@@ -261,7 +276,6 @@ export default function Home() {
   const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    setOnline(navigator.onLine);
     const on = () => setOnline(true);
     const off = () => setOnline(false);
     window.addEventListener("online", on);
@@ -435,7 +449,7 @@ export default function Home() {
         <div className="sidebar-footer"><CircleHelp size={17} /><span>How live data works</span><a href="/crowdsim/">Open data portrait <ArrowRight size={13} /></a></div>
       </aside>
 
-      <section className="main-view">
+      <section className={`main-view ${tab === "Map" ? "map-mode" : ""}`}>
         <header className="topbar">
           <div className="mobile-brand brand"><span className="brand-mark"><Radio size={17} /></span><span>Crowd<span>List</span></span></div>
           <div className="search-wrap">
@@ -450,9 +464,6 @@ export default function Home() {
         {tab === "Map" && (
           <div className="map-view">
             <CrowdMap selected={selected} onSelect={selectStage} />
-            <div className="map-actions">
-              <button onClick={() => notify("Map centered on the festival grounds")} aria-label="Center map"><LocateFixed /></button>
-            </div>
           </div>
         )}
 

@@ -58,6 +58,22 @@ test("publication remains crowd-gated and offline contributions remain device-lo
   assert.match(serviceWorker, /caches\.match/);
 });
 
+test("the front page uses the local street basemap instead of presenting crowd data on a decorative field", async () => {
+  const [page, styles, manifest] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /outside-lands\.pmtiles/);
+  assert.match(page, /new pmtiles\.Protocol/);
+  assert.match(page, /"source-layer": "roads"/);
+  assert.match(page, /© OpenStreetMap contributors · Protomaps/);
+  assert.doesNotMatch(page, /road road-one|road road-two/);
+  assert.match(styles, /\.map-mode \.topbar/);
+  assert.match(styles, /\.stage-panel \{ position: fixed/);
+  assert.match(manifest, /"pmtiles"/);
+});
+
 test("an unconfigured concierge fails explicitly instead of presenting a fabricated live answer", async () => {
   const response = await request("/api/agent", {
     method: "POST",
